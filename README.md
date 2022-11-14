@@ -32,4 +32,6 @@ All the pipeline inputs (gVCFs, reference files, and the sample map input) must 
 
 Finally the `do_submit.sh` shell script zips up the tasks and uses cromshell to submit the pipeline.
  
- 
+## References
+
+See also [this google doc](https://docs.google.com/document/d/1-ekbFhM__EuOPyoNqzV5Oae4E1RDbFWz422HHRYBybk/edit#heading=h.yvqi4xzhz9t7) for details of the journey to run this pipeline on Azure
