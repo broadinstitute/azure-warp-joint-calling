@@ -45,7 +45,7 @@ task SplitIntervalList {
     Boolean sample_names_unique_done
     Int disk_size
     String scatter_mode = "BALANCING_WITHOUT_INTERVAL_SUBDIVISION_WITH_OVERFLOW"
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
