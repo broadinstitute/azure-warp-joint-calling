@@ -30,7 +30,7 @@ task CheckSamplesUnique {
   runtime {
     memory: "1 GiB"
     disk: "10 GB"
-    docker: "gcscromwellacr.azurecr.io/us.gcr.io/broad-gotc-prod/python:2.7"
+    docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
   }
 }
 
@@ -87,7 +87,7 @@ task ImportGVCFs {
     Int disk_size
     Int batch_size
 
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
@@ -151,7 +151,7 @@ task GenotypeGVCFs {
     Int disk_size
     # This is needed for gVCFs generated with GATK3 HaplotypeCaller
     Boolean allow_old_rms_mapping_quality_annotation_data = false
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
@@ -206,7 +206,7 @@ task GnarlyGenotyper {
     String dbsnp_vcf
     Boolean make_annotation_db = false
 
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
@@ -263,7 +263,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     String sites_only_vcf_filename
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
@@ -319,7 +319,7 @@ task IndelsVariantRecalibrator {
     Int max_gaussians = 4
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
@@ -381,7 +381,7 @@ task SNPsVariantRecalibratorCreateModel {
     Int max_gaussians = 6
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
@@ -443,7 +443,7 @@ task SNPsVariantRecalibrator {
     Int max_gaussians = 6
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
     Int? machine_mem_mb
 
   }
@@ -505,7 +505,7 @@ task GatherTranches {
     String output_filename
     String mode
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
@@ -576,7 +576,7 @@ task ApplyRecalibration {
     Float snp_filter_level
     Boolean use_allele_specific_annotations
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
@@ -624,7 +624,7 @@ task GatherVcfs {
     Array[File] input_vcfs
     String output_vcf_name
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
@@ -669,7 +669,7 @@ task SelectFingerprintSiteVariants {
     File haplotype_database
     String base_output_name
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
@@ -719,7 +719,7 @@ task CollectVariantCallingMetrics {
     File interval_list
     File ref_dict
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
@@ -755,7 +755,7 @@ task GatherVariantCallingMetrics {
     Array[File] input_summaries
     String output_prefix
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
@@ -834,7 +834,7 @@ task CrossCheckFingerprint {
     String output_base_name
     Boolean scattered = false
     Array[String] expected_inconclusive_samples = []
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   parameter_meta {
@@ -944,7 +944,7 @@ task GatherPicardMetrics {
     cpu: 1
     memory: "3.75 GiB"
     disk: disk_size + " GB"
-    docker: "gcscromwellacr.azurecr.io/us.gcr.io/broad-gotc-prod/python:2.7"
+    docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
   }
 }
 
@@ -953,7 +953,7 @@ task GetFingerprintingIntervalIndices {
   input {
     Array[File] unpadded_intervals
     File haplotype_database
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
@@ -1048,6 +1048,6 @@ task PartitionSampleNameMap {
   runtime {
     memory: "1 GiB"
     disk: "10 GB"
-    docker: "gcscromwellacr.azurecr.io/us.gcr.io/broad-gotc-prod/python:2.7"
+    docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
   }
 }
