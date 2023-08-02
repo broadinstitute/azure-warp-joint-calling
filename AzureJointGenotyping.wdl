@@ -414,7 +414,8 @@ workflow JointGenotyping {
           sample_name_map = sample_name_map,
           haplotype_database = haplotype_database,
           output_base_name = callset_name + "." + idx,
-          scattered = true
+          scattered = true,
+          disk = small_disk
       }
     }
 
@@ -438,7 +439,8 @@ workflow JointGenotyping {
         vcf_paths = ApplyRecalibration.recalibrated_vcf,
         sample_name_map = sample_name_map,
         haplotype_database = haplotype_database,
-        output_base_name = callset_name
+        output_base_name = callset_name,
+        disk = small_disk
     }
   }
 

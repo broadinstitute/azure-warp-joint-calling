@@ -835,6 +835,7 @@ task CrossCheckFingerprint {
     Boolean scattered = false
     Array[String] expected_inconclusive_samples = []
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    Int disk
   }
 
   parameter_meta {
@@ -852,7 +853,6 @@ task CrossCheckFingerprint {
   # 3.75GiB / cpu used by GCP's pricing: https://cloud.google.com/compute/pricing
   Int memMb = round(cpu * 3.75 * 1024)
   Int java_mem = memMb - 512
-  Int disk = 100
 
   String output_name = output_base_name + ".fingerprintcheck"
 
