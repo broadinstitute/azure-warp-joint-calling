@@ -62,6 +62,8 @@ task SplitIntervalList {
     >>>
 
   runtime {
+    memory: "8 GB"
+    cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
     vm_size: "Standard_D2_v4"
