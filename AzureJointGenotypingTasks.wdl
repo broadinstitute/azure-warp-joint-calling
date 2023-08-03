@@ -31,6 +31,7 @@ task CheckSamplesUnique {
     memory: "1 GiB"
     disk: "10 GB"
     docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
+    vm_size: "Standard_D2_v4"
   }
 }
 
@@ -61,7 +62,6 @@ task SplitIntervalList {
     >>>
 
   runtime {
-    memory: "3750 MiB"
     disk: disk_size + " GB"
     docker: gatk_docker
     vm_size: "Standard_D2_v4"
@@ -123,6 +123,7 @@ task ImportGVCFs {
     cpu: 4
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D8_v4"
   }
 
   output {
@@ -187,6 +188,7 @@ task GenotypeGVCFs {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D8_v4"
   }
 
   output {
@@ -243,6 +245,7 @@ task GnarlyGenotyper {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D8_v4"
   }
 
   output {
@@ -288,6 +291,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D2_v4"
   }
 
   output {
@@ -347,6 +351,7 @@ task IndelsVariantRecalibrator {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D8_v4"
   }
 
   output {
@@ -412,6 +417,7 @@ task SNPsVariantRecalibratorCreateModel {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D32_v4"
   }
 
   output {
@@ -490,6 +496,7 @@ task SNPsVariantRecalibrator {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D48_v4"
   }
 
   output {
@@ -554,6 +561,7 @@ task GatherTranches {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D2_v4"
   }
 
   output {
@@ -611,6 +619,7 @@ task ApplyRecalibration {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D2_v4"
   }
 
   output {
@@ -655,6 +664,7 @@ task GatherVcfs {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D4_v4"
   }
 
   output {
@@ -701,6 +711,7 @@ task SelectFingerprintSiteVariants {
     cpu: 1
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D2_v4"
   }
 
   output {
@@ -746,6 +757,7 @@ task CollectVariantCallingMetrics {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D2_v4"
   }
 }
 
@@ -817,6 +829,7 @@ task GatherVariantCallingMetrics {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D2_v4"
   }
 
   output {
@@ -837,8 +850,6 @@ task CrossCheckFingerprint {
     Array[String] expected_inconclusive_samples = []
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
     Int disk
-    # temporary workaround for TES bug: inapprorpriate disk full errors
-    Int cpu = 32
   }
 
   parameter_meta {
@@ -851,7 +862,7 @@ task CrossCheckFingerprint {
   }
 
   Int num_gvcfs = length(gvcf_paths)
-  #Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
+  Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
   # Compute memory to use based on the CPU count, following the pattern of
   # 3.75GiB / cpu used by GCP's pricing: https://cloud.google.com/compute/pricing
   Int memMb = round(cpu * 3.75 * 1024)
@@ -911,6 +922,7 @@ task CrossCheckFingerprint {
     memory: memMb + " MiB"
     disk: disk + " GB"
     docker: gatk_docker
+    vm_size: "Standard_D32_v4"
   }
 
   output {
@@ -948,6 +960,7 @@ task GatherPicardMetrics {
     memory: "3.75 GiB"
     disk: disk_size + " GB"
     docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
+    vm_size: "Standard_D2_v4"
   }
 }
 
@@ -1025,6 +1038,7 @@ task GetFingerprintingIntervalIndices {
     memory: "3750 MiB"
     disk: "10 GB"
     docker: gatk_docker
+    vm_size: "Standard_D2_v4"
   }
 }
 
@@ -1052,5 +1066,6 @@ task PartitionSampleNameMap {
     memory: "1 GiB"
     disk: "10 GB"
     docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
+    vm_size: "Standard_D2_v4"
   }
 }
