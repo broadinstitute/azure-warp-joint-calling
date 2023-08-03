@@ -836,6 +836,8 @@ task CrossCheckFingerprint {
     Array[String] expected_inconclusive_samples = []
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
     Int disk
+    # temporary workaround for TES bug: inapprorpriate disk full errors
+    Int cpu = 32
   }
 
   parameter_meta {
@@ -848,7 +850,7 @@ task CrossCheckFingerprint {
   }
 
   Int num_gvcfs = length(gvcf_paths)
-  Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
+  #Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
   # Compute memory to use based on the CPU count, following the pattern of
   # 3.75GiB / cpu used by GCP's pricing: https://cloud.google.com/compute/pricing
   Int memMb = round(cpu * 3.75 * 1024)
