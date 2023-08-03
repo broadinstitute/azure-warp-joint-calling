@@ -75,9 +75,10 @@ task SplitIntervalList {
 task ImportGVCFs {
 
   input {
-    Array[String] sample_names
-    Array[File] gvcf_files
-    Array[File] gvcf_index_files
+    File sample_name_map
+    File header_vcf
+    File header_vcf_index
+    String SAS_token
     File interval
     File ref_fasta
     File ref_fasta_index
@@ -85,16 +86,19 @@ task ImportGVCFs {
 
     String workspace_dir_name
 
+    File gatk_jar
     Int disk_size
     Int batch_size
 
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
   }
 
   command <<<
     set -euo pipefail
 
     rm -rf ~{workspace_dir_name}
+
+    export AZURE_STORAGE_SAS_TOKEN="~{SAS_token}"
 
     # We've seen some GenomicsDB performance regressions related to intervals, so we're going to pretend we only have a single interval
     # using the --merge-input-intervals arg
@@ -105,15 +109,18 @@ task ImportGVCFs {
     # a significant amount of non-heap memory for native libraries.
     # Also, testing has shown that the multithreaded reader initialization
     # does not scale well beyond 5 threads, so don't increase beyond that.
-    gatk --java-options "-Xms8000m -Xmx25000m" \
+    java -Xms8000m -Xmx25000m -jar ~{gatk_jar} \
       GenomicsDBImport \
       --genomicsdb-workspace-path ~{workspace_dir_name} \
       --batch-size ~{batch_size} \
       -L ~{interval} \
-      -V ~{sep=' -V ' gvcf_files} \
+      --sample-name-map ~{sample_name_map} \
       --reader-threads 5 \
       --merge-input-intervals \
-      --consolidate
+      --consolidate \
+      --header ~{header_vcf} \
+      --avoid-nio \
+      --bypass-feature-reader
 
     tar -cf ~{workspace_dir_name}.tar ~{workspace_dir_name}
   >>>
@@ -149,10 +156,11 @@ task GenotypeGVCFs {
     Boolean keep_combined_raw_annotations = false
     String? additional_annotation
 
+    File gatk_jar
     Int disk_size
     # This is needed for gVCFs generated with GATK3 HaplotypeCaller
     Boolean allow_old_rms_mapping_quality_annotation_data = false
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
   }
 
   parameter_meta {
@@ -167,7 +175,7 @@ task GenotypeGVCFs {
     tar -xf ~{workspace_tar}
     WORKSPACE=$(basename ~{workspace_tar} .tar)
 
-    gatk --java-options "-Xms8000m -Xmx25000m" \
+    java -Xms8000m -Xmx25000m -jar ~{gatk_jar} \
       GenotypeGVCFs \
       -R ~{ref_fasta} \
       -O ~{output_vcf_filename} \
@@ -207,7 +215,8 @@ task GnarlyGenotyper {
     String dbsnp_vcf
     Boolean make_annotation_db = false
 
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    File gatk_jar
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
   }
 
   parameter_meta {
@@ -224,7 +233,7 @@ task GnarlyGenotyper {
     tar -xf ~{workspace_tar}
     WORKSPACE=$( basename ~{workspace_tar} .tar)
 
-    gatk --java-options "-Xms8000m -Xmx25000m" \
+     java -Xms8000m -Xmx25000m -jar ~{gatk_jar} \
       GnarlyGenotyper \
       -R ~{ref_fasta} \
       -O ~{output_vcf_filename} \

@@ -21,6 +21,11 @@ workflow JointGenotyping {
     File dbsnp_vcf
     File dbsnp_vcf_index
 
+    #temporary workaround until gatk is released and has a docker
+    File gendb_gatk_jar
+    #temporary workaround until localization_optional is implmemented
+    String SAS_token
+
     Int small_disk
     Int medium_disk
     Int large_disk
@@ -54,6 +59,9 @@ workflow JointGenotyping {
     Float indel_filter_level
     Int snp_vqsr_downsampleFactor
 
+    File header_vcf
+    File header_vcf_index
+
     Int? top_level_scatter_count
     Boolean? gather_vcfs
     Int snps_variant_recalibration_threshold = 500000
@@ -71,10 +79,10 @@ workflow JointGenotyping {
   Array[Array[String]] sample_name_map_lines = read_tsv(sample_name_map)
   Int num_gvcfs = length(sample_name_map_lines)
 
-  Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
-  Array[String] sample_names_from_map = sample_name_map_lines_t[0]
-  Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
-  Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
+  #Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
+  #Array[String] sample_names_from_map = sample_name_map_lines_t[0]
+  #Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
+  #Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
 
   # Make a 2.5:1 interval number to samples in callset ratio interval list.
   # We allow overriding the behavior by specifying the desired number of vcfs
@@ -117,16 +125,19 @@ workflow JointGenotyping {
     # the Hellbender (GATK engine) team!
     call Tasks.ImportGVCFs {
       input:
-        sample_names = sample_names_from_map,
-        gvcf_files = gvcf_paths_from_map,
-        gvcf_index_files = gvcf_index_paths_from_map,
+        sample_name_map = sample_name_map,
+        # need to provide an example header in order to stream from azure, so use the first gvcf
+        header_vcf = header_vcf,
+        header_vcf_index = header_vcf_index,
+        SAS_token = SAS_token,
         interval = unpadded_intervals[idx],
         ref_fasta = ref_fasta,
         ref_fasta_index = ref_fasta_index,
         ref_dict = ref_dict,
         workspace_dir_name = "genomicsdb",
         disk_size = medium_disk,
-        batch_size = 50
+        batch_size = 50,
+        gatk_jar = gendb_gatk_jar
     }
 
     if (use_gnarly_genotyper) {
@@ -154,6 +165,7 @@ workflow JointGenotyping {
             ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict,
             dbsnp_vcf = dbsnp_vcf,
+            gatk_jar = gendb_gatk_jar
         }
       }
 
@@ -178,7 +190,8 @@ workflow JointGenotyping {
           ref_dict = ref_dict,
           dbsnp_vcf = dbsnp_vcf,
           dbsnp_vcf_index = dbsnp_vcf_index,
-          disk_size = medium_disk
+          disk_size = medium_disk,
+          gatk_jar = gendb_gatk_jar
       }
     }
 
