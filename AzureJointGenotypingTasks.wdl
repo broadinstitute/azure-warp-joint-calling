@@ -64,7 +64,7 @@ task SplitIntervalList {
     memory: "3750 MiB"
     disk: disk_size + " GB"
     docker: gatk_docker
-    vm_size: "Standard_D2_v5"
+    vm_size: "Standard_D2_v4"
   }
 
   output {
