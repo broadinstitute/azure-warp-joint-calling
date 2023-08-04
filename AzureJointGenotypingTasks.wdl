@@ -66,7 +66,7 @@ task SplitIntervalList {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
-    vm_size: "Standard_D2d_v4"
+    vm_size: "Standard_E2_v3"
   }
 
   output {
