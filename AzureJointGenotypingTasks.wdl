@@ -83,6 +83,8 @@ task ImportGVCFs {
     File ref_fasta
     File ref_fasta_index
     File ref_dict
+    Int max_stream_size_multiplier = 10
+    Int max_stream_size = 1024 * max_stream_size_multiplier
 
     String workspace_dir_name
 
@@ -99,6 +101,7 @@ task ImportGVCFs {
     rm -rf ~{workspace_dir_name}
 
     export AZURE_STORAGE_SAS_TOKEN="~{SAS_token}"
+    export TILEDB_MAX_STREAM_SIZE=~{max_stream_size}
 
     # We've seen some GenomicsDB performance regressions related to intervals, so we're going to pretend we only have a single interval
     # using the --merge-input-intervals arg
