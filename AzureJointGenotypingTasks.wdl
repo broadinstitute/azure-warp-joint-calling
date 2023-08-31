@@ -31,6 +31,7 @@ task CheckSamplesUnique {
     memory: "1 GiB"
     disk: "10 GB"
     docker: "methodscr.azurecr.io/us.gcr.io/broad-gotc-prod:python_2.7"
+    maxRetries: 2
   }
 }
 
@@ -65,6 +66,7 @@ task SplitIntervalList {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -131,6 +133,7 @@ task ImportGVCFs {
     cpu: 4
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -196,6 +199,7 @@ task GenotypeGVCFs {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -253,6 +257,7 @@ task GnarlyGenotyper {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -298,6 +303,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -357,6 +363,7 @@ task IndelsVariantRecalibrator {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -422,6 +429,7 @@ task SNPsVariantRecalibratorCreateModel {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -500,6 +508,7 @@ task SNPsVariantRecalibrator {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -564,6 +573,7 @@ task GatherTranches {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -621,6 +631,7 @@ task ApplyRecalibration {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -665,6 +676,7 @@ task GatherVcfs {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -711,6 +723,7 @@ task SelectFingerprintSiteVariants {
     cpu: 1
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -756,6 +769,7 @@ task CollectVariantCallingMetrics {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 }
 
@@ -827,6 +841,7 @@ task GatherVariantCallingMetrics {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -919,6 +934,7 @@ task CrossCheckFingerprint {
     memory: memMb + " MiB"
     disk: disk + " GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 
   output {
@@ -956,6 +972,7 @@ task GatherPicardMetrics {
     memory: "3.75 GiB"
     disk: disk_size + " GB"
     docker: "methodscr.azurecr.io/us.gcr.io/broad-gotc-prod:python_2.7"
+    maxRetries: 2
   }
 }
 
@@ -1033,6 +1050,7 @@ task GetFingerprintingIntervalIndices {
     memory: "3750 MiB"
     disk: "10 GB"
     docker: gatk_docker
+    maxRetries: 2
   }
 }
 
@@ -1060,5 +1078,6 @@ task PartitionSampleNameMap {
     memory: "1 GiB"
     disk: "10 GB"
     docker: "methodscr.azurecr.io/us.gcr.io/broad-gotc-prod:python_2.7"
+    maxRetries: 2
   }
 }
