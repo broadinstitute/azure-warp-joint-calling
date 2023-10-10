@@ -8,10 +8,15 @@ workflow GatherTest {
         String SAS_token
     }
 
+    Array[Pair[String, String]] inputs_var = cross(html_links, [SAS_token])
+
+    scatter(i in range(length(inputs_var))) {
+        String inputs_concat = inputs_var[i].left + inputs_var[i].right
+    }
+
     call GatherVcfs {
         input:
-            input_vcfs = html_links,
-            SAS_token = SAS_token,
+            input_vcfs = inputs_concat,
             disk_size = 500
     }
 }
@@ -22,15 +27,10 @@ task GatherVcfs {
 
   input {
     Array[String] input_vcfs
-    String SAS_token
     String output_vcf_name = "test.vcf.gz"
     Int disk_size
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
-  
-  Array[String] inputs = cross(input_vcfs, [SAS_token])
-  #String separator_string = SAS_token + "' --input '"
-  #String input_command = prefix(SAS_token + "' --input '", input_vcfs)
 
   command <<<
     set -euo pipefail
@@ -42,7 +42,7 @@ task GatherVcfs {
       GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \
-      --input '~{sep="' --input '" inputs}' \
+      --input '~{sep="' --input '" input_vcfs}' \
       --output ~{output_vcf_name}
 
     tabix ~{output_vcf_name}
