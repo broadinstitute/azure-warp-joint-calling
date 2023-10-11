@@ -1,23 +1,21 @@
 version 1.0
 
-
-# Joint Genotyping for hg38 Whole Genomes and Exomes (has not been tested on hg19)
 workflow GatherTest {
     input {
         Array[String] html_links
         String SAS_token
     }
 
-    Array[Pair[String, String]] inputs_var = cross(html_links, [SAS_token])
-
-    scatter(i in range(length(inputs_var))) {
-        String inputs_concat = inputs_var[i].left + inputs_var[i].right
+    scatter(i in range(length(html_links))) {
+        String inputs_concat = html_links[i] + SAS_token
     }
 
-    call GatherVcfs {
-        input:
-            input_vcfs = inputs_concat,
-            disk_size = 500
+    scatter(i in range(50)){
+        call GatherVcfs {
+            input:
+                input_vcfs = inputs_concat,
+                disk_size = 50
+        }
     }
 }
 
