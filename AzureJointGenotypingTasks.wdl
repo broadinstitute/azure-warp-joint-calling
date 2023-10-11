@@ -643,16 +643,10 @@ task ApplyRecalibration {
 task GatherVcfs {
 
   input {
-    Array[File] input_vcfs
+    Array[String] input_vcfs
     String output_vcf_name
     Int disk_size
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
-  }
-
-  parameter_meta {
-    input_vcfs: {
-      localization_optional: true
-    }
   }
 
   command <<<

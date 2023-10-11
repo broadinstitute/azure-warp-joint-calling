@@ -13,6 +13,7 @@ workflow JointGenotyping {
 
     String callset_name
     File sample_name_map
+    File sample_name_map_for_fingerprinting
 
     File ref_fasta
     File ref_fasta_index
@@ -59,9 +60,6 @@ workflow JointGenotyping {
     Float indel_filter_level
     Int snp_vqsr_downsampleFactor
 
-    File header_vcf
-    File header_vcf_index
-
     Int? top_level_scatter_count
     Boolean? gather_vcfs
     Int snps_variant_recalibration_threshold = 500000
@@ -76,13 +74,15 @@ workflow JointGenotyping {
 
   Boolean allele_specific_annotations = !use_gnarly_genotyper && use_allele_specific_annotations
 
-  Array[Array[String]] sample_name_map_lines = read_tsv(sample_name_map)
+  Array[Array[String]] sample_name_map_lines = read_tsv(sample_name_map_for_fingerprinting)
   Int num_gvcfs = length(sample_name_map_lines)
 
-  #Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
-  #Array[String] sample_names_from_map = sample_name_map_lines_t[0]
-  #Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
-  #Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
+  Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
+  Array[String] sample_names_from_map = sample_name_map_lines_t[0]
+  Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
+  Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
+  File header_vcf = gvcf_paths_from_map[0]
+  File header_vcf_index = gvcf_index_paths_from_map[0]
 
   # Make a 2.5:1 interval number to samples in callset ratio interval list.
   # We allow overriding the behavior by specifying the desired number of vcfs
@@ -98,11 +98,11 @@ workflow JointGenotyping {
   Int unbounded_scatter_count = select_first([top_level_scatter_count, round(unbounded_scatter_count_scale_factor * num_gvcfs)])
   Int scatter_count = if unbounded_scatter_count > 2 then unbounded_scatter_count else 2 #I think weird things happen if scatterCount is 1 -- IntervalListTools is noop?
 
-  #call Tasks.CheckSamplesUnique {
-  #  input:
-  #    sample_name_map = sample_name_map,
-  #    sample_num_threshold = 10
-  #}
+  call Tasks.CheckSamplesUnique {
+    input:
+      sample_name_map = sample_name_map_for_fingerprinting,
+      sample_num_threshold = 1
+  }
 
   call Tasks.SplitIntervalList {
     input:
@@ -171,9 +171,13 @@ workflow JointGenotyping {
 
       Array[File] gnarly_gvcfs = GnarlyGenotyper.output_vcf
 
+      scatter(i in range(length(gnarly_gvcfs))) {
+        String gnarly_gvcfs_sas = gnarly_gvcfs[i] + SAS_token
+      }
+
       call Tasks.GatherVcfs as TotallyRadicalGatherVcfs {
         input:
-          input_vcfs = gnarly_gvcfs,
+          input_vcfs = gnarly_gvcfs_sas,
           output_vcf_name = callset_name + "." + idx + ".gnarly.vcf.gz",
           disk_size = large_disk
       }
@@ -209,9 +213,13 @@ workflow JointGenotyping {
     }
   }
 
+  scatter(i in range(length(HardFilterAndMakeSitesOnlyVcf.sites_only_vcf))) {
+        String sites_only_sas = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf[i] + SAS_token
+  }
+
   call Tasks.GatherVcfs as SitesOnlyGatherVcf {
     input:
-      input_vcfs = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf,
+      input_vcfs = sites_only_sas,
       output_vcf_name = callset_name + ".sites_only.vcf.gz",
       disk_size = medium_disk
   }
@@ -349,9 +357,14 @@ workflow JointGenotyping {
   # For small callsets we can gather the VCF shards and then collect metrics on it.
   # HUGE disk was failing in Azure...
   if (is_small_callset) {
+
+    scatter(i in range(length(ApplyRecalibration.recalibrated_vcf))) {
+        String recalibrated_vcf_sas = ApplyRecalibration.recalibrated_vcf[i] + SAS_token
+    }
+
     call Tasks.GatherVcfs as FinalGatherVcf {
       input:
-        input_vcfs = ApplyRecalibration.recalibrated_vcf,
+        input_vcfs = recalibrated_vcf_sas,
         output_vcf_name = callset_name + ".vcf.gz",
         disk_size = large_disk
     }
@@ -412,7 +425,7 @@ workflow JointGenotyping {
 
     call Tasks.PartitionSampleNameMap {
       input:
-        sample_name_map = sample_name_map,
+        sample_name_map = sample_name_map_for_fingerprinting,
         line_limit = 1000
     }
 
@@ -423,8 +436,8 @@ workflow JointGenotyping {
       call Tasks.CrossCheckFingerprint as CrossCheckFingerprintsScattered {
         input:
           gvcf_paths = files_in_partition,
-          vcf_paths = vcfs_to_fingerprint,
-          sample_name_map = sample_name_map,
+          vcf_paths = [SelectFingerprintSiteVariants.output_vcf],
+          sample_name_map = sample_name_map_for_fingerprinting,
           haplotype_database = haplotype_database,
           output_base_name = callset_name + "." + idx,
           scattered = true,
@@ -450,7 +463,7 @@ workflow JointGenotyping {
       input:
         gvcf_paths = gvcf_paths,
         vcf_paths = ApplyRecalibration.recalibrated_vcf,
-        sample_name_map = sample_name_map,
+        sample_name_map = sample_name_map_for_fingerprinting,
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
         disk = small_disk
