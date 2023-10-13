@@ -13,7 +13,6 @@ workflow JointGenotyping {
 
     String callset_name
     File sample_name_map
-    File sample_name_map_for_fingerprinting
 
     File ref_fasta
     File ref_fasta_index
@@ -60,6 +59,9 @@ workflow JointGenotyping {
     Float indel_filter_level
     Int snp_vqsr_downsampleFactor
 
+    File header_vcf
+    File header_vcf_index
+
     Int? top_level_scatter_count
     Boolean? gather_vcfs
     Int snps_variant_recalibration_threshold = 500000
@@ -74,15 +76,15 @@ workflow JointGenotyping {
 
   Boolean allele_specific_annotations = !use_gnarly_genotyper && use_allele_specific_annotations
 
-  Array[Array[String]] sample_name_map_lines = read_tsv(sample_name_map_for_fingerprinting)
+  Array[Array[String]] sample_name_map_lines = read_tsv(sample_name_map)
   Int num_gvcfs = length(sample_name_map_lines)
 
-  Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
-  Array[String] sample_names_from_map = sample_name_map_lines_t[0]
-  Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
-  Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
-  File header_vcf = gvcf_paths_from_map[0]
-  File header_vcf_index = gvcf_index_paths_from_map[0]
+  #Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
+  #Array[String] sample_names_from_map = sample_name_map_lines_t[0]
+  #Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
+  #Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
+  #File header_vcf = gvcf_paths_from_map[0]
+  #File header_vcf_index = gvcf_index_paths_from_map[0]
 
   # Make a 2.5:1 interval number to samples in callset ratio interval list.
   # We allow overriding the behavior by specifying the desired number of vcfs
@@ -98,11 +100,11 @@ workflow JointGenotyping {
   Int unbounded_scatter_count = select_first([top_level_scatter_count, round(unbounded_scatter_count_scale_factor * num_gvcfs)])
   Int scatter_count = if unbounded_scatter_count > 2 then unbounded_scatter_count else 2 #I think weird things happen if scatterCount is 1 -- IntervalListTools is noop?
 
-  call Tasks.CheckSamplesUnique {
-    input:
-      sample_name_map = sample_name_map_for_fingerprinting,
-      sample_num_threshold = 1
-  }
+  #call Tasks.CheckSamplesUnique {
+  #  input:
+  #    sample_name_map = sample_name_map_for_fingerprinting,
+  #    sample_num_threshold = 1
+  #}
 
   call Tasks.SplitIntervalList {
     input:
@@ -425,7 +427,7 @@ workflow JointGenotyping {
 
     call Tasks.PartitionSampleNameMap {
       input:
-        sample_name_map = sample_name_map_for_fingerprinting,
+        sample_name_map = sample_name_map,
         line_limit = 1000
     }
 
@@ -436,8 +438,8 @@ workflow JointGenotyping {
       call Tasks.CrossCheckFingerprint as CrossCheckFingerprintsScattered {
         input:
           gvcf_paths = files_in_partition,
-          vcf_paths = [SelectFingerprintSiteVariants.output_vcf],
-          sample_name_map = sample_name_map_for_fingerprinting,
+          vcf_paths = vcfs_to_fingerprint,
+          sample_name_map = sample_name_map,
           haplotype_database = haplotype_database,
           output_base_name = callset_name + "." + idx,
           scattered = true,
@@ -463,7 +465,7 @@ workflow JointGenotyping {
       input:
         gvcf_paths = gvcf_paths,
         vcf_paths = ApplyRecalibration.recalibrated_vcf,
-        sample_name_map = sample_name_map_for_fingerprinting,
+        sample_name_map = sample_name_map,
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
         disk = small_disk
