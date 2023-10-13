@@ -101,8 +101,6 @@ task ImportGVCFs {
     rm -rf ~{workspace_dir_name}
 
     export AZURE_STORAGE_SAS_TOKEN="~{SAS_token}"
-    # can remove this line once using the latest GATK/GenomicsDB 1.5.1
-    export TILEDB_NUM_THREADS=1
 
     # We've seen some GenomicsDB performance regressions related to intervals, so we're going to pretend we only have a single interval
     # using the --merge-input-intervals arg
