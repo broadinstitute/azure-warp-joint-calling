@@ -12,7 +12,11 @@ workflow JointGenotyping {
     File unpadded_intervals_file
 
     String callset_name
+    #TODO: make sample_name_map from the gvcf_paths?
     File sample_name_map
+
+    Array[File] gvcf_paths
+    Array[File] gvcf_path_indexes
 
     File ref_fasta
     File ref_fasta_index
@@ -25,6 +29,8 @@ workflow JointGenotyping {
     File gendb_gatk_jar
     #temporary workaround until localization_optional is implmemented
     String SAS_token
+    #temporary workaround until gatk is released with CheckFingerprint changes
+    File check_fingerprint_gatk_jar
 
     Int small_disk
     Int medium_disk
@@ -59,9 +65,6 @@ workflow JointGenotyping {
     Float indel_filter_level
     Int snp_vqsr_downsampleFactor
 
-    File header_vcf
-    File header_vcf_index
-
     Int? top_level_scatter_count
     Boolean? gather_vcfs
     Int snps_variant_recalibration_threshold = 500000
@@ -71,7 +74,7 @@ workflow JointGenotyping {
     Boolean use_gnarly_genotyper = false
     Boolean use_allele_specific_annotations = true
     Boolean cross_check_fingerprints = true
-    Boolean scatter_cross_check_fingerprints = false
+    Int? cross_check_fingerprint_scatter_partition
   }
 
   Boolean allele_specific_annotations = !use_gnarly_genotyper && use_allele_specific_annotations
@@ -79,12 +82,12 @@ workflow JointGenotyping {
   Array[Array[String]] sample_name_map_lines = read_tsv(sample_name_map)
   Int num_gvcfs = length(sample_name_map_lines)
 
-  #Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
-  #Array[String] sample_names_from_map = sample_name_map_lines_t[0]
+  Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
+  Array[String] sample_names_from_map = sample_name_map_lines_t[0]
   #Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
   #Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
-  #File header_vcf = gvcf_paths_from_map[0]
-  #File header_vcf_index = gvcf_index_paths_from_map[0]
+  File header_vcf = gvcf_paths[0]
+  File header_vcf_index = gvcf_path_indexes[0]
 
   # Make a 2.5:1 interval number to samples in callset ratio interval list.
   # We allow overriding the behavior by specifying the desired number of vcfs
@@ -397,7 +400,7 @@ workflow JointGenotyping {
 
   # CrossCheckFingerprints takes forever on large callsets.
   # We scatter over the input GVCFs to make things faster.
-  if (scatter_cross_check_fingerprints) {
+  if (defined(cross_check_fingerprint_scatter_partition)) {
     call Tasks.GetFingerprintingIntervalIndices {
       input:
         unpadded_intervals = unpadded_intervals,
@@ -425,21 +428,22 @@ workflow JointGenotyping {
         disk_size = medium_disk
     }
 
-    call Tasks.PartitionSampleNameMap {
-      input:
-        sample_name_map = sample_name_map,
-        line_limit = 1000
-    }
+    # Get partitions by partition number of gvcfs, including any remainder in the last partition
+    # Subsetting happens in the CrossCheckFingerprints task
+    Array[Int] partitions = range((num_gvcfs+cross_check_fingerprint_scatter_partition)/cross_check_fingerprint_scatter_partition)
 
-    scatter (idx in range(length(PartitionSampleNameMap.partitions))) {
-
-      Array[File] files_in_partition = read_lines(PartitionSampleNameMap.partitions[idx])
+    scatter (idx in range(length(partitions))) {
+      Int parition_scaled = partitions[idx] * cross_check_fingerprint_scatter_partition
 
       call Tasks.CrossCheckFingerprint as CrossCheckFingerprintsScattered {
         input:
-          gvcf_paths = files_in_partition,
-          vcf_paths = vcfs_to_fingerprint,
-          sample_name_map = sample_name_map,
+          gvcf_paths = gvcf_paths,
+          gvcf_index_paths = gvcf_path_indexes,
+          vcf_paths = [SelectFingerprintSiteVariants.output_vcf],
+          vcf_index_paths = [SelectFingerprintSiteVariants.output_vcf_index],
+          sample_names_from_map = sample_names_from_map,
+          partition_index = parition_scaled,
+          partition_ammount = cross_check_fingerprint_scatter_partition,
           haplotype_database = haplotype_database,
           output_base_name = callset_name + "." + idx,
           scattered = true,
@@ -455,17 +459,15 @@ workflow JointGenotyping {
     }
   }
 
-  if (!scatter_cross_check_fingerprints) {
-
-    scatter (line in sample_name_map_lines) {
-      File gvcf_paths = line[1]
-    }
+  if (!defined(cross_check_fingerprint_scatter_partition)) {
 
     call Tasks.CrossCheckFingerprint as CrossCheckFingerprintSolo {
       input:
         gvcf_paths = gvcf_paths,
+        gvcf_index_paths = gvcf_path_indexes,
         vcf_paths = ApplyRecalibration.recalibrated_vcf,
-        sample_name_map = sample_name_map,
+        vcf_index_paths = ApplyRecalibration.recalibrated_vcf_index,
+        sample_names_from_map = sample_names_from_map,
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
         disk = small_disk

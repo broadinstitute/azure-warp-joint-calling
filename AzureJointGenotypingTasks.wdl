@@ -658,7 +658,7 @@ task GatherVcfs {
       GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \
-      --input ~{sep=" --input " input_vcfs} \
+      --input '~{sep="' --input '" input_vcfs}' \
       --output ~{output_vcf_name}
 
     tabix ~{output_vcf_name}
@@ -846,26 +846,25 @@ task GatherVariantCallingMetrics {
 task CrossCheckFingerprint {
 
   input {
-    Array[File] gvcf_paths
-    Array[File] vcf_paths
-    File sample_name_map
+    Array[String] gvcf_paths
+    Array[String] vcf_paths
+    Array[String] gvcf_index_paths
+    Array[String] vcf_index_paths
+    Array[String] sample_names_from_map
+    Int? partition_index
+    Int? partition_ammount
     File haplotype_database
     String output_base_name
     Boolean scattered = false
     Array[String] expected_inconclusive_samples = []
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    File gatk_jar
     Int disk
   }
 
-  parameter_meta {
-    gvcf_paths: {
-      localization_optional: true
-    }
-    vcf_paths: {
-      localization_optional: true
-    }
-  }
-
+  # Handle partitioning if provided
+  Int partition_start  = if defined(partition_index) then partition_index - partition_ammount + 1 else 1
+  Int partition_end = if defined(partition_index) then partition_index else length(gvcf_paths)
   Int num_gvcfs = length(gvcf_paths)
   Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
   # Compute memory to use based on the CPU count, following the pattern of
@@ -878,21 +877,25 @@ task CrossCheckFingerprint {
   command <<<
     set -eu
 
-    gvcfInputsList=~{write_lines(gvcf_paths)}
-    vcfInputsList=~{write_lines(vcf_paths)}
+    tail -n +~{partition_start} ~{write_lines(gvcf_paths)} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_inputs.list
+    tail -n +~{partition_start} ~{write_lines(gvcf_index_paths)} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_index_inputs.tmp
+    tail -n +~{partition_start} ~{write_lines(sample_names_from_map)} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > sample_name_map.tmp
 
-    cp $gvcfInputsList gvcf_inputs.list
-    cp $vcfInputsList vcf_inputs.list
+    cp ~{write_lines(vcf_paths)} vcf_inputs.list
+    cp ~{write_lines(vcf_index_paths)} vcf_index_inputs.tmp
 
-    ## kcibul -- remove extra columns we added for azure
-    cat ~{sample_name_map} | cut -f1,2 > two_column_sample_name_map.txt
+    paste -d"\t" gvcf_inputs.list gvcf_index_input.tmp > gvcf_index_map.list
+    paste -d"\t" vcf_inputs.list vcf_index_inputs.tmp > vcf_index_map.list
+    paste -d"\t" sample_name_map.tmp gvcf_inputs.list  > sample_name_map.list
     
-    gatk --java-options "-Xms~{java_mem}m -Xmx~{java_mem}m" \
+    java -Xms~{java_mem}m -Xmx~{java_mem}m -jar ~{gatk_jar} \
       CrosscheckFingerprints \
       --INPUT gvcf_inputs.list \
+      --INPUT_INDEX_MAP gvcf_index_map.list \
       --SECOND_INPUT vcf_inputs.list \
+      --SECOND_INDEX_MAP vcf_index_map.list \
       --HAPLOTYPE_MAP ~{haplotype_database} \
-      --INPUT_SAMPLE_FILE_MAP two_column_sample_name_map.txt \
+      --INPUT_SAMPLE_FILE_MAP sample_name_map.list \
       --CROSSCHECK_BY SAMPLE \
       --CROSSCHECK_MODE CHECK_SAME_SAMPLE \
       --NUM_THREADS ~{cpu} \
@@ -926,6 +929,7 @@ task CrossCheckFingerprint {
   runtime {
     memory: memMb + " MiB"
     disk: disk + " GB"
+    cpu: cpu
     docker: gatk_docker
     maxRetries: 2
   }
