@@ -74,6 +74,7 @@ workflow JointGenotyping {
     Boolean use_gnarly_genotyper = false
     Boolean use_allele_specific_annotations = true
     Boolean cross_check_fingerprints = true
+    # If cross check fingerprints should be scattered, how many gvcfs per shard? Typically set to 1000.
     Int? cross_check_fingerprint_scatter_partition
   }
 
