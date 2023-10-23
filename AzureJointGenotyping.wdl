@@ -28,7 +28,8 @@ workflow JointGenotyping {
     #temporary workaround until gatk is released and has a docker
     File gendb_gatk_jar
     #temporary workaround until localization_optional is implmemented
-    String SAS_token
+    String SAS_token_encoded
+    String SAS_token_decoded
     #temporary workaround until gatk is released with CheckFingerprint changes
     File check_fingerprint_gatk_jar
 
@@ -135,7 +136,7 @@ workflow JointGenotyping {
         # need to provide an example header in order to stream from azure, so use the first gvcf
         header_vcf = header_vcf,
         header_vcf_index = header_vcf_index,
-        SAS_token = SAS_token,
+        SAS_token = SAS_token_encoded,
         interval = unpadded_intervals[idx],
         ref_fasta = ref_fasta,
         ref_fasta_index = ref_fasta_index,
@@ -178,7 +179,7 @@ workflow JointGenotyping {
       Array[File] gnarly_gvcfs = GnarlyGenotyper.output_vcf
 
       scatter(i in range(length(gnarly_gvcfs))) {
-        String gnarly_gvcfs_sas = gnarly_gvcfs[i] + SAS_token
+        String gnarly_gvcfs_sas = gnarly_gvcfs[i] + SAS_token_decoded
       }
 
       call Tasks.GatherVcfs as TotallyRadicalGatherVcfs {
@@ -220,7 +221,7 @@ workflow JointGenotyping {
   }
 
   scatter(i in range(length(HardFilterAndMakeSitesOnlyVcf.sites_only_vcf))) {
-        String sites_only_sas = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf[i] + SAS_token
+        String sites_only_sas = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf[i] + SAS_token_decoded
   }
 
   call Tasks.GatherVcfs as SitesOnlyGatherVcf {
@@ -365,7 +366,7 @@ workflow JointGenotyping {
   if (is_small_callset) {
 
     scatter(i in range(length(ApplyRecalibration.recalibrated_vcf))) {
-        String recalibrated_vcf_sas = ApplyRecalibration.recalibrated_vcf[i] + SAS_token
+        String recalibrated_vcf_sas = ApplyRecalibration.recalibrated_vcf[i] + SAS_token_decoded
     }
 
     call Tasks.GatherVcfs as FinalGatherVcf {
