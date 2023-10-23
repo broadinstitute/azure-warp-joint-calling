@@ -884,7 +884,7 @@ task CrossCheckFingerprint {
     cp ~{write_lines(vcf_paths)} vcf_inputs.list
     cp ~{write_lines(vcf_index_paths)} vcf_index_inputs.tmp
 
-    paste -d"\t" gvcf_inputs.list gvcf_index_input.tmp > gvcf_index_map.list
+    paste -d"\t" gvcf_inputs.list gvcf_index_inputs.tmp > gvcf_index_map.list
     paste -d"\t" vcf_inputs.list vcf_index_inputs.tmp > vcf_index_map.list
     paste -d"\t" sample_name_map.tmp gvcf_inputs.list  > sample_name_map.list
     
