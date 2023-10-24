@@ -857,7 +857,7 @@ task CrossCheckFingerprint {
     String output_base_name
     Boolean scattered = false
     Array[String] expected_inconclusive_samples = []
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
     File gatk_jar
     Int disk
   }
