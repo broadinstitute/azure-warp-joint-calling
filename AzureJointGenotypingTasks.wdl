@@ -893,7 +893,7 @@ task CrossCheckFingerprint {
       --INPUT gvcf_inputs.list \
       --INPUT_INDEX_MAP gvcf_index_map.list \
       --SECOND_INPUT vcf_inputs.list \
-      --SECOND_INDEX_MAP vcf_index_map.list \
+      --SECOND_INPUT_INDEX_MAP vcf_index_map.list \
       --HAPLOTYPE_MAP ~{haplotype_database} \
       --INPUT_SAMPLE_FILE_MAP sample_name_map.list \
       --CROSSCHECK_BY SAMPLE \
