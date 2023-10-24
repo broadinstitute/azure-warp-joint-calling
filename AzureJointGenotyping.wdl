@@ -400,6 +400,11 @@ workflow JointGenotyping {
     }
   }
 
+  scatter(i in range(length(gvcf_paths))) {
+    String gvcf_path_sas = gvcf_paths[i] + SAS_token_decoded
+    String gvcf_path_index_sas = gvcf_path_indexes[i] + SAS_token_decoded
+  }
+
   # CrossCheckFingerprints takes forever on large callsets.
   # We scatter over the input GVCFs to make things faster.
   if (defined(cross_check_fingerprint_scatter_partition)) {
@@ -439,10 +444,10 @@ workflow JointGenotyping {
 
       call Tasks.CrossCheckFingerprint as CrossCheckFingerprintsScattered {
         input:
-          gvcf_paths = gvcf_paths,
-          gvcf_index_paths = gvcf_path_indexes,
-          vcf_paths = [SelectFingerprintSiteVariants.output_vcf],
-          vcf_index_paths = [SelectFingerprintSiteVariants.output_vcf_index],
+          gvcf_paths = gvcf_path_sas,
+          gvcf_index_paths = gvcf_path_index_sas,
+          vcf_paths = [SelectFingerprintSiteVariants.output_vcf + SAS_token_decoded],
+          vcf_index_paths = [SelectFingerprintSiteVariants.output_vcf_index + SAS_token_decoded],
           sample_names_from_map = sample_names_from_map,
           partition_index = parition_scaled,
           partition_ammount = cross_check_fingerprint_scatter_partition,
@@ -464,12 +469,17 @@ workflow JointGenotyping {
 
   if (!defined(cross_check_fingerprint_scatter_partition)) {
 
+  scatter(i in range(length(ApplyRecalibration.recalibrated_vcf))) {
+    String vcf_path_sas = ApplyRecalibration.recalibrated_vcf[i] + SAS_token_decoded
+    String vcf_path_index_sas = ApplyRecalibration.recalibrated_vcf_index[i] + SAS_token_decoded
+  }
+
     call Tasks.CrossCheckFingerprint as CrossCheckFingerprintSolo {
       input:
-        gvcf_paths = gvcf_paths,
-        gvcf_index_paths = gvcf_path_indexes,
-        vcf_paths = ApplyRecalibration.recalibrated_vcf,
-        vcf_index_paths = ApplyRecalibration.recalibrated_vcf_index,
+        gvcf_paths = gvcf_path_sas,
+        gvcf_index_paths = gvcf_path_index_sas,
+        vcf_paths = vcf_path_sas,
+        vcf_index_paths = vcf_path_index_sas,
         sample_names_from_map = sample_names_from_map,
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
