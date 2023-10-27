@@ -417,7 +417,7 @@ workflow JointGenotyping {
     Array[Int] fingerprinting_indices = GetFingerprintingIntervalIndices.indices_to_fingerprint
 
     scatter (idx in fingerprinting_indices) {
-      File vcfs_to_fingerprint = HardFilterAndMakeSitesOnlyVcf.variant_filtered_vcf[idx]
+      File vcfs_to_fingerprint = HardFilterAndMakeSitesOnlyVcf.variant_filtered_vcf[idx] + SAS_token_decoded
     }
 
     call Tasks.GatherVcfs as GatherFingerprintingVcfs {
