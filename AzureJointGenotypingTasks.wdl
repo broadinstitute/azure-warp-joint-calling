@@ -682,15 +682,17 @@ task SelectFingerprintSiteVariants {
 
   input {
     File input_vcf
+    File input_vcf_index
     File haplotype_database
     String base_output_name
     Int disk_size
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
+  #TODO: Make SelectVariants able to stream from https by including a VCF index input in addition to the vcf itself, for now localize
   parameter_meta {
     input_vcf: {
-      localization_optional: true
+      localization_optional: false
     }
   }
 

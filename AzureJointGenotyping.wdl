@@ -430,6 +430,7 @@ workflow JointGenotyping {
     call Tasks.SelectFingerprintSiteVariants {
       input:
         input_vcf = GatherFingerprintingVcfs.output_vcf,
+        input_vcf_index = GatherFingerprintingVcfs.output_vcf_index,
         base_output_name = callset_name + ".fingerprinting",
         haplotype_database = haplotype_database,
         disk_size = medium_disk
