@@ -866,8 +866,8 @@ task CrossCheckFingerprint {
 
   # Handle partitioning if provided
   Int partition_start  = if defined(partition_index) then partition_index - partition_ammount + 1 else 1
-  Int partition_end = if defined(partition_index) then partition_index else length(gvcf_paths)
-  Int num_gvcfs = length(gvcf_paths)
+  Int partition_end = if defined(partition_index) && partition_index < length(gvcf_paths) then partition_index else length(gvcf_paths)
+  Int num_gvcfs = partition_end - partition_start + 1
   Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
   # Compute memory to use based on the CPU count, following the pattern of
   # 3.75GiB / cpu used by GCP's pricing: https://cloud.google.com/compute/pricing

@@ -441,7 +441,7 @@ workflow JointGenotyping {
     Array[Int] partitions = range((num_gvcfs+cross_check_fingerprint_scatter_partition)/cross_check_fingerprint_scatter_partition)
 
     scatter (idx in range(length(partitions))) {
-      Int parition_scaled = partitions[idx] * cross_check_fingerprint_scatter_partition
+      Int parition_scaled = (partitions[idx] + 1) * cross_check_fingerprint_scatter_partition
 
       call Tasks.CrossCheckFingerprint as CrossCheckFingerprintsScattered {
         input:
