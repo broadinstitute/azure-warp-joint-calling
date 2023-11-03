@@ -77,10 +77,9 @@ task SplitIntervalList {
 task ImportGVCFs {
 
   input {
-    File sample_name_map
-    File header_vcf
-    File header_vcf_index
-    String SAS_token
+    Array[String] sample_names
+    Array[File] gvcf_files
+    Array[File] gvcf_index_files
     File interval
     File ref_fasta
     File ref_fasta_index
@@ -88,19 +87,16 @@ task ImportGVCFs {
 
     String workspace_dir_name
 
-    File gatk_jar
     Int disk_size
     Int batch_size
 
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
 
   command <<<
     set -euo pipefail
 
     rm -rf ~{workspace_dir_name}
-
-    export AZURE_STORAGE_SAS_TOKEN="~{SAS_token}"
 
     # We've seen some GenomicsDB performance regressions related to intervals, so we're going to pretend we only have a single interval
     # using the --merge-input-intervals arg
@@ -111,18 +107,15 @@ task ImportGVCFs {
     # a significant amount of non-heap memory for native libraries.
     # Also, testing has shown that the multithreaded reader initialization
     # does not scale well beyond 5 threads, so don't increase beyond that.
-    java -Xms8000m -Xmx25000m -jar ~{gatk_jar} \
+    gatk --java-options "-Xms8000m -Xmx25000m" \
       GenomicsDBImport \
       --genomicsdb-workspace-path ~{workspace_dir_name} \
       --batch-size ~{batch_size} \
       -L ~{interval} \
-      --sample-name-map ~{sample_name_map} \
+      -V ~{sep=' -V ' gvcf_files} \
       --reader-threads 5 \
       --merge-input-intervals \
-      --consolidate \
-      --header ~{header_vcf} \
-      --avoid-nio \
-      --bypass-feature-reader
+      --consolidate
 
     tar -cf ~{workspace_dir_name}.tar ~{workspace_dir_name}
   >>>
@@ -132,7 +125,6 @@ task ImportGVCFs {
     cpu: 4
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -848,10 +840,10 @@ task GatherVariantCallingMetrics {
 task CrossCheckFingerprint {
 
   input {
-    Array[String] gvcf_paths
-    Array[String] vcf_paths
-    Array[String] gvcf_index_paths
-    Array[String] vcf_index_paths
+    Array[File] gvcf_paths
+    Array[File] vcf_paths
+    Array[File] gvcf_index_paths
+    Array[File] vcf_index_paths
     Array[String] sample_names_from_map
     Int? partition_index
     Int? partition_ammount

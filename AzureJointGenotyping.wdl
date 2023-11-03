@@ -132,19 +132,16 @@ workflow JointGenotyping {
     # the Hellbender (GATK engine) team!
     call Tasks.ImportGVCFs {
       input:
-        sample_name_map = sample_name_map,
-        # need to provide an example header in order to stream from azure, so use the first gvcf
-        header_vcf = header_vcf,
-        header_vcf_index = header_vcf_index,
-        SAS_token = SAS_token_encoded,
+        sample_names = sample_names_from_map,
+        gvcf_files = gvcf_paths,
+        gvcf_index_files = gvcf_path_indexes,
         interval = unpadded_intervals[idx],
         ref_fasta = ref_fasta,
         ref_fasta_index = ref_fasta_index,
         ref_dict = ref_dict,
         workspace_dir_name = "genomicsdb",
         disk_size = medium_disk,
-        batch_size = 50,
-        gatk_jar = gendb_gatk_jar
+        batch_size = 50
     }
 
     if (use_gnarly_genotyper) {
@@ -226,7 +223,7 @@ workflow JointGenotyping {
 
   call Tasks.GatherVcfs as SitesOnlyGatherVcf {
     input:
-      input_vcfs = sites_only_sas,
+      input_vcfs = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf,
       output_vcf_name = callset_name + ".sites_only.vcf.gz",
       disk_size = medium_disk
   }
@@ -371,7 +368,7 @@ workflow JointGenotyping {
 
     call Tasks.GatherVcfs as FinalGatherVcf {
       input:
-        input_vcfs = recalibrated_vcf_sas,
+        input_vcfs = ApplyRecalibration.recalibrated_vcf,
         output_vcf_name = callset_name + ".vcf.gz",
         disk_size = large_disk
     }
@@ -477,10 +474,10 @@ workflow JointGenotyping {
 
     call Tasks.CrossCheckFingerprint as CrossCheckFingerprintSolo {
       input:
-        gvcf_paths = gvcf_path_sas,
-        gvcf_index_paths = gvcf_path_index_sas,
-        vcf_paths = vcf_path_sas,
-        vcf_index_paths = vcf_path_index_sas,
+        gvcf_paths = gvcf_paths,
+        gvcf_index_paths = gvcf_path_indexes,
+        vcf_paths = ApplyRecalibration.recalibrated_vcf,
+        vcf_index_paths = ApplyRecalibration.recalibrated_vcf_index,
         sample_names_from_map = sample_names_from_map,
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
