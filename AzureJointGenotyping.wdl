@@ -136,7 +136,6 @@ workflow JointGenotyping {
         # need to provide an example header in order to stream from azure, so use the first gvcf
         header_vcf = header_vcf,
         header_vcf_index = header_vcf_index,
-        SAS_token = SAS_token_encoded,
         interval = unpadded_intervals[idx],
         ref_fasta = ref_fasta,
         ref_fasta_index = ref_fasta_index,
