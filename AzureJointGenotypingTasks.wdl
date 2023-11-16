@@ -99,6 +99,8 @@ task ImportGVCFs {
 
     rm -rf ~{workspace_dir_name}
 
+    echo $AZURE_STORAGE_SAS_TOKEN
+
     # We've seen some GenomicsDB performance regressions related to intervals, so we're going to pretend we only have a single interval
     # using the --merge-input-intervals arg
     # There's no data in between since we didn't run HaplotypeCaller over those loci so we're not wasting any compute
