@@ -137,6 +137,7 @@ workflow JointGenotyping {
         header_vcf = header_vcf,
         header_vcf_index = header_vcf_index,
         interval = unpadded_intervals[idx],
+        SAS_token = SAS_token_encoded,
         ref_fasta = ref_fasta,
         ref_fasta_index = ref_fasta_index,
         ref_dict = ref_dict,
