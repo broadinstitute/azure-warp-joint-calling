@@ -1080,3 +1080,20 @@ task PartitionSampleNameMap {
     maxRetries: 2
   }
 }
+
+task splitFofn {
+    input {
+      File largeFofn
+    }
+    command {
+        mkdir sandbox
+        split -l 5000 ${largeFofn} sandbox/
+    }
+
+    output {
+        Array[File] tiny_fofns = glob("sandbox/*")
+    }
+    runtime {
+        docker: "ubuntu:latest"
+    }
+}

@@ -89,11 +89,6 @@ workflow JointGenotyping {
   #Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
   #Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
 
-  Array[File] gvcf_paths = read_lines(gvcf_paths_fofn)
-  Array[File] gvcf_path_indexes = read_lines(gvcf_path_indexes_fofn)
-  File header_vcf = gvcf_paths[0]
-  File header_vcf_index = gvcf_path_indexes[0]
-
   # Make a 2.5:1 interval number to samples in callset ratio interval list.
   # We allow overriding the behavior by specifying the desired number of vcfs
   # to scatter over for testing / special requests.
@@ -124,6 +119,27 @@ workflow JointGenotyping {
       disk_size = small_disk,
       sample_names_unique_done = true
   }
+
+  call Tasks.splitFofn as splitGvcfFofn {
+    input:
+      largeFofn = gvcf_paths_fofn
+  }
+
+  call Tasks.splitFofn as splitGvcfIndexFofn {
+    input:
+      largeFofn = gvcf_path_indexes_fofn
+  }
+
+  scatter (i in range(length(splitGvcfFofn.tiny_fofns))) {
+    Array[File] gvcf_path_arrays = read_lines(splitGvcfFofn.tiny_fofns[i])
+    Array[File] gvcf_index_path_arrays = read_lines(splitGvcfIndexFofn.tiny_fofns[i])
+  }
+
+  Array[File] gvcf_paths = flatten(gvcf_path_arrays)
+  Array[File] gvcf_path_indexes = flatten(gvcf_index_path_arrays)
+
+  File header_vcf = gvcf_paths[0]
+  File header_vcf_index = gvcf_path_indexes[0]
 
   Array[File] unpadded_intervals = SplitIntervalList.output_intervals
 
