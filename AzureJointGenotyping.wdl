@@ -88,6 +88,9 @@ workflow JointGenotyping {
   Array[String] sample_names_from_map = sample_name_map_lines_t[0]
   #Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
   #Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
+
+  Array[File] gvcf_paths = read_lines(gvcf_paths_fofn)
+  Array[File] gvcf_path_indexes = read_lines(gvcf_path_indexes_fofn)
   File header_vcf = gvcf_paths[0]
   File header_vcf_index = gvcf_path_indexes[0]
 
@@ -104,9 +107,6 @@ workflow JointGenotyping {
 
   Int unbounded_scatter_count = select_first([top_level_scatter_count, round(unbounded_scatter_count_scale_factor * num_gvcfs)])
   Int scatter_count = if unbounded_scatter_count > 2 then unbounded_scatter_count else 2 #I think weird things happen if scatterCount is 1 -- IntervalListTools is noop?
-
-  Array[File] gvcf_paths = read_lines(gvcf_paths_fofn)
-  Array[File] gvcf_path_indexes = read_lines(gvcf_path_indexes_fofn)
 
   #call Tasks.CheckSamplesUnique {
   #  input:
