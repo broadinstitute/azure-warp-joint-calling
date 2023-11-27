@@ -80,7 +80,6 @@ task ImportGVCFs {
     File sample_name_map
     File header_vcf
     File header_vcf_index
-    String SAS_token
     File interval
     File ref_fasta
     File ref_fasta_index
@@ -99,8 +98,6 @@ task ImportGVCFs {
     set -euo pipefail
 
     rm -rf ~{workspace_dir_name}
-
-    export AZURE_STORAGE_SAS_TOKEN="~{SAS_token}"
 
     # We've seen some GenomicsDB performance regressions related to intervals, so we're going to pretend we only have a single interval
     # using the --merge-input-intervals arg
@@ -133,6 +130,7 @@ task ImportGVCFs {
     disk: disk_size + " GB"
     docker: gatk_docker
     maxRetries: 2
+    azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
   }
 
   output {
@@ -1081,7 +1079,7 @@ task PartitionSampleNameMap {
   }
 }
 
-task splitFofn {
+task SplitFofn {
     input {
       File largeFofn
     }

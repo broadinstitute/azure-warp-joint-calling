@@ -120,19 +120,19 @@ workflow JointGenotyping {
       sample_names_unique_done = true
   }
 
-  call Tasks.splitFofn as splitGvcfFofn {
+  call Tasks.SplitFofn as SplitGvcfFofn {
     input:
       largeFofn = gvcf_paths_fofn
   }
 
-  call Tasks.splitFofn as splitGvcfIndexFofn {
+  call Tasks.SplitFofn as SplitGvcfIndexFofn {
     input:
       largeFofn = gvcf_path_indexes_fofn
   }
 
-  scatter (i in range(length(splitGvcfFofn.tiny_fofns))) {
-    Array[File] gvcf_path_arrays = read_lines(splitGvcfFofn.tiny_fofns[i])
-    Array[File] gvcf_index_path_arrays = read_lines(splitGvcfIndexFofn.tiny_fofns[i])
+  scatter (i in range(length(SplitGvcfFofn.tiny_fofns))) {
+    Array[File] gvcf_path_arrays = read_lines(SplitGvcfFofn.tiny_fofns[i])
+    Array[File] gvcf_index_path_arrays = read_lines(SplitGvcfIndexFofn.tiny_fofns[i])
   }
 
   Array[File] gvcf_paths = flatten(gvcf_path_arrays)
@@ -156,7 +156,6 @@ workflow JointGenotyping {
         header_vcf = header_vcf,
         header_vcf_index = header_vcf_index,
         interval = unpadded_intervals[idx],
-        SAS_token = SAS_token_encoded,
         ref_fasta = ref_fasta,
         ref_fasta_index = ref_fasta_index,
         ref_dict = ref_dict,
