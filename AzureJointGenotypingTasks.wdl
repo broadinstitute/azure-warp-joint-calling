@@ -657,7 +657,7 @@ task GatherVcfs {
       GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \
-      --input '~{sep="'$AZURE_STORAGE_SAS_TOKEN --input '" input_vcfs}$AZURE_STORAGE_SAS_TOKEN' \
+      --input ~{sep="$AZURE_STORAGE_SAS_TOKEN --input " input_vcfs}$AZURE_STORAGE_SAS_TOKEN \
       --output ~{output_vcf_name}
 
     tabix ~{output_vcf_name}
