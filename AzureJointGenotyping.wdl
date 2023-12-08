@@ -196,13 +196,9 @@ workflow JointGenotyping {
 
       Array[File] gnarly_gvcfs = GnarlyGenotyper.output_vcf
 
-      scatter(i in range(length(gnarly_gvcfs))) {
-        String gnarly_gvcfs_sas = gnarly_gvcfs[i] + SAS_token_decoded
-      }
-
       call Tasks.GatherVcfs as TotallyRadicalGatherVcfs {
         input:
-          input_vcfs = gnarly_gvcfs_sas,
+          input_vcfs = gnarly_gvcfs,
           output_vcf_name = callset_name + "." + idx + ".gnarly.vcf.gz",
           disk_size = large_disk
       }
@@ -238,13 +234,9 @@ workflow JointGenotyping {
     }
   }
 
-  scatter(i in range(length(HardFilterAndMakeSitesOnlyVcf.sites_only_vcf))) {
-        String sites_only_sas = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf[i] + SAS_token_decoded
-  }
-
   call Tasks.GatherVcfs as SitesOnlyGatherVcf {
     input:
-      input_vcfs = sites_only_sas,
+      input_vcfs = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf,
       output_vcf_name = callset_name + ".sites_only.vcf.gz",
       disk_size = medium_disk
   }

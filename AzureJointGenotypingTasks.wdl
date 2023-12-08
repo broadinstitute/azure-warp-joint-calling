@@ -99,8 +99,6 @@ task ImportGVCFs {
 
     rm -rf ~{workspace_dir_name}
 
-    echo $AZURE_STORAGE_SAS_TOKEN
-
     # We've seen some GenomicsDB performance regressions related to intervals, so we're going to pretend we only have a single interval
     # using the --merge-input-intervals arg
     # There's no data in between since we didn't run HaplotypeCaller over those loci so we're not wasting any compute
@@ -657,7 +655,7 @@ task GatherVcfs {
       GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \
-      --input '~{sep="' --input '" input_vcfs}' \
+      --input '~{sep="'$AZURE_STORAGE_SAS_TOKEN --input '" input_vcfs}$AZURE_STORAGE_SAS_TOKEN' \
       --output ~{output_vcf_name}
 
     tabix ~{output_vcf_name}
@@ -668,7 +666,7 @@ task GatherVcfs {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
+    azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
   }
 
   output {
