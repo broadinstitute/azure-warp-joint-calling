@@ -639,11 +639,13 @@ task ApplyRecalibration {
 task GatherVcfs {
 
   input {
-    Array[String] input_vcfs
+    File input_vcf_fofn
     String output_vcf_name
     Int disk_size
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
   }
+
+  Array[String] input_vcfs = read_lines(input_vcf_fofn)
 
   command <<<
     set -euo pipefail

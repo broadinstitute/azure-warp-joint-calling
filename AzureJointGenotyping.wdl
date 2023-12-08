@@ -194,11 +194,9 @@ workflow JointGenotyping {
         }
       }
 
-      Array[File] gnarly_gvcfs = GnarlyGenotyper.output_vcf
-
       call Tasks.GatherVcfs as TotallyRadicalGatherVcfs {
         input:
-          input_vcfs = gnarly_gvcfs,
+          input_vcf_fofn = write_lines(GnarlyGenotyper.output_vcf),
           output_vcf_name = callset_name + "." + idx + ".gnarly.vcf.gz",
           disk_size = large_disk
       }
@@ -236,7 +234,7 @@ workflow JointGenotyping {
 
   call Tasks.GatherVcfs as SitesOnlyGatherVcf {
     input:
-      input_vcfs = HardFilterAndMakeSitesOnlyVcf.sites_only_vcf,
+      input_vcf_fofn = write_lines(HardFilterAndMakeSitesOnlyVcf.sites_only_vcf),
       output_vcf_name = callset_name + ".sites_only.vcf.gz",
       disk_size = medium_disk
   }
@@ -375,13 +373,9 @@ workflow JointGenotyping {
   # HUGE disk was failing in Azure...
   if (is_small_callset) {
 
-    scatter(i in range(length(ApplyRecalibration.recalibrated_vcf))) {
-        String recalibrated_vcf_sas = ApplyRecalibration.recalibrated_vcf[i] + SAS_token_decoded
-    }
-
     call Tasks.GatherVcfs as FinalGatherVcf {
       input:
-        input_vcfs = recalibrated_vcf_sas,
+        input_vcf_fofn = write_lines(ApplyRecalibration.recalibrated_vcf),
         output_vcf_name = callset_name + ".vcf.gz",
         disk_size = large_disk
     }
@@ -427,12 +421,12 @@ workflow JointGenotyping {
     Array[Int] fingerprinting_indices = GetFingerprintingIntervalIndices.indices_to_fingerprint
 
     scatter (idx in fingerprinting_indices) {
-      File vcfs_to_fingerprint = HardFilterAndMakeSitesOnlyVcf.variant_filtered_vcf[idx] + SAS_token_decoded
+      File vcfs_to_fingerprint = HardFilterAndMakeSitesOnlyVcf.variant_filtered_vcf[idx]
     }
 
     call Tasks.GatherVcfs as GatherFingerprintingVcfs {
       input:
-        input_vcfs = vcfs_to_fingerprint,
+        input_vcf_fofn = write_lines(vcfs_to_fingerprint),
         output_vcf_name = callset_name + ".gathered.fingerprinting.vcf.gz",
         disk_size = medium_disk
     }
