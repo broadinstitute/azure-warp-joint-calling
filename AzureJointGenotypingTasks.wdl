@@ -642,7 +642,7 @@ task GatherVcfs {
     File input_vcf_fofn
     String output_vcf_name
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
   }
 
   Array[String] input_vcfs = read_lines(input_vcf_fofn)
