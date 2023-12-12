@@ -640,6 +640,7 @@ task GatherVcfs {
 
   input {
     File input_vcf_fofn
+    File gatk_jar
     String output_vcf_name
     Int disk_size
     String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
@@ -653,7 +654,7 @@ task GatherVcfs {
     # --ignore-safety-checks makes a big performance difference so we include it in our invocation.
     # This argument disables expensive checks that the file headers contain the same set of
     # genotyped samples and that files are in order by position of first record.
-    gatk --java-options "-Xms6000m -Xmx6500m" \
+    java -Xms6000m -Xmx6500m -jar ~{gatk_jar} \
       GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \

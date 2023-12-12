@@ -27,6 +27,7 @@ workflow JointGenotyping {
 
     #temporary workaround until gatk is released and has a docker
     File gendb_gatk_jar
+    File gather_gatk_jar
     #temporary workaround until localization_optional is implmemented
     String SAS_token_encoded
     String SAS_token_decoded
@@ -198,6 +199,7 @@ workflow JointGenotyping {
         input:
           input_vcf_fofn = write_lines(GnarlyGenotyper.output_vcf),
           output_vcf_name = callset_name + "." + idx + ".gnarly.vcf.gz",
+          gatk_jar = gather_gatk_jar,
           disk_size = large_disk
       }
     }
@@ -236,6 +238,7 @@ workflow JointGenotyping {
     input:
       input_vcf_fofn = write_lines(HardFilterAndMakeSitesOnlyVcf.sites_only_vcf),
       output_vcf_name = callset_name + ".sites_only.vcf.gz",
+      gatk_jar = gather_gatk_jar,
       disk_size = medium_disk
   }
 
@@ -377,6 +380,7 @@ workflow JointGenotyping {
       input:
         input_vcf_fofn = write_lines(ApplyRecalibration.recalibrated_vcf),
         output_vcf_name = callset_name + ".vcf.gz",
+        gatk_jar = gather_gatk_jar,
         disk_size = large_disk
     }
 
@@ -428,6 +432,7 @@ workflow JointGenotyping {
       input:
         input_vcf_fofn = write_lines(vcfs_to_fingerprint),
         output_vcf_name = callset_name + ".gathered.fingerprinting.vcf.gz",
+        gatk_jar = gather_gatk_jar,
         disk_size = medium_disk
     }
 
