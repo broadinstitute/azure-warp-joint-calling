@@ -951,11 +951,6 @@ task CrossCheckFingerprint {
 
   output {
     File crosscheck_metrics = output_name
-    File gvcf_inputs = "gvcf_inputs.list"
-    File gvcf_index = "gvcf_index_map.list"
-    File vcf_inputs = "vcf_inputs.list"
-    File vcf_index = "vcf_index_map.list"
-    File sample_names = "sample_name_map.list"
   }
 }
 
