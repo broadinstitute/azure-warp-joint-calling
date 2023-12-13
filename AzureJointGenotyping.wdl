@@ -408,11 +408,6 @@ workflow JointGenotyping {
     }
   }
 
-  scatter(i in range(length(gvcf_paths))) {
-    String gvcf_path_sas = gvcf_paths[i] + SAS_token_decoded
-    String gvcf_path_index_sas = gvcf_path_indexes[i] + SAS_token_decoded
-  }
-
   # CrossCheckFingerprints takes forever on large callsets.
   # We scatter over the input GVCFs to make things faster.
   if (defined(cross_check_fingerprint_scatter_partition)) {
@@ -454,13 +449,14 @@ workflow JointGenotyping {
 
       call Tasks.CrossCheckFingerprint as CrossCheckFingerprintsScattered {
         input:
-          gvcf_paths = gvcf_path_sas,
-          gvcf_index_paths = gvcf_path_index_sas,
-          vcf_paths = [SelectFingerprintSiteVariants.output_vcf + SAS_token_decoded],
-          vcf_index_paths = [SelectFingerprintSiteVariants.output_vcf_index + SAS_token_decoded],
-          sample_names_from_map = sample_names_from_map,
+          gvcf_paths_fofn = write_lines(gvcf_paths),
+          gvcf_index_paths_fofn = write_lines(gvcf_path_indexes),
+          vcf_paths_fofn = write_lines([SelectFingerprintSiteVariants.output_vcf]),
+          vcf_index_paths_fofn = write_lines([SelectFingerprintSiteVariants.output_vcf_index]),
+          sample_names_from_map_fofn = write_lines(sample_names_from_map),
           partition_index = parition_scaled,
           partition_ammount = cross_check_fingerprint_scatter_partition,
+          gvcf_paths_length = length(gvcf_paths),
           haplotype_database = haplotype_database,
           output_base_name = callset_name + "." + idx,
           scattered = true,
@@ -486,11 +482,11 @@ workflow JointGenotyping {
 
     call Tasks.CrossCheckFingerprint as CrossCheckFingerprintSolo {
       input:
-        gvcf_paths = gvcf_path_sas,
-        gvcf_index_paths = gvcf_path_index_sas,
-        vcf_paths = vcf_path_sas,
-        vcf_index_paths = vcf_path_index_sas,
-        sample_names_from_map = sample_names_from_map,
+        gvcf_paths_fofn = write_lines(gvcf_paths),
+        gvcf_index_paths_fofn = write_lines(gvcf_path_indexes),
+        vcf_paths_fofn = write_lines(ApplyRecalibration.recalibrated_vcf),
+        vcf_index_paths_fofn = write_lines(ApplyRecalibration.recalibrated_vcf_index),
+        sample_names_from_map_fofn = write_lines(sample_names_from_map),
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
         disk = small_disk,

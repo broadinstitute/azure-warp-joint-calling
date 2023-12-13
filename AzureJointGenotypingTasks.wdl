@@ -848,13 +848,14 @@ task GatherVariantCallingMetrics {
 task CrossCheckFingerprint {
 
   input {
-    Array[String] gvcf_paths
-    Array[String] vcf_paths
-    Array[String] gvcf_index_paths
-    Array[String] vcf_index_paths
-    Array[String] sample_names_from_map
+    File gvcf_paths_fofn
+    File vcf_paths_fofn
+    File gvcf_index_paths_fofn
+    File vcf_index_paths_fofn
+    File sample_names_from_map_fofn
     Int? partition_index
     Int? partition_ammount
+    Int? gvcf_paths_length
     File haplotype_database
     String output_base_name
     Boolean scattered = false
@@ -866,7 +867,7 @@ task CrossCheckFingerprint {
 
   # Handle partitioning if provided
   Int partition_start  = if defined(partition_index) then partition_index - partition_ammount + 1 else 1
-  Int partition_end = if defined(partition_index) && partition_index < length(gvcf_paths) then partition_index else length(gvcf_paths)
+  Int partition_end = if defined(partition_index) && partition_index < gvcf_paths_length then partition_index else gvcf_paths_length
   Int num_gvcfs = partition_end - partition_start + 1
   Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
   # Compute memory to use based on the CPU count, following the pattern of
@@ -879,12 +880,37 @@ task CrossCheckFingerprint {
   command <<<
     set -eu
 
-    tail -n +~{partition_start} ~{write_lines(gvcf_paths)} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_inputs.list
-    tail -n +~{partition_start} ~{write_lines(gvcf_index_paths)} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_index_inputs.tmp
-    tail -n +~{partition_start} ~{write_lines(sample_names_from_map)} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > sample_name_map.tmp
+    touch gvcf_paths.txt
+    touch gvcf_index_paths.txt
+    touch vcf_paths.txt
+    touch vcf_index_paths.txt
 
-    cp ~{write_lines(vcf_paths)} vcf_inputs.list
-    cp ~{write_lines(vcf_index_paths)} vcf_index_inputs.tmp
+    while IFS= read -r line; do
+      result="$line?$AZURE_STORAGE_SAS_TOKEN"
+      echo "$result" >> gvf_paths.txt
+    done < ~{gvcf_paths_fofn}
+  
+    while IFS= read -r line; do
+      result="$line?$AZURE_STORAGE_SAS_TOKEN"
+      echo "$result" >> gvcf_index_paths.txt
+    done < ~{gvcf_index_paths_fofn}
+
+    while IFS= read -r line; do
+      result="$line?$AZURE_STORAGE_SAS_TOKEN"
+      echo "$result" >> vcf_paths.txt
+    done < ~{vcf_paths_fofn}
+
+    while IFS= read -r line; do
+      result="$line?$AZURE_STORAGE_SAS_TOKEN"
+      echo "$result" >> vcf_index_paths.txt
+    done < ~{vcf_index_paths_fofn}
+
+    tail -n +~{partition_start} gvcf_paths.txt | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_inputs.list
+    tail -n +~{partition_start} gvcf_index_paths.txt | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_index_inputs.tmp
+    tail -n +~{partition_start} ~{sample_names_from_map_fofn} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > sample_name_map.tmp
+
+    cp vcf_paths.txt vcf_inputs.list
+    cp vcf_index_paths.txt vcf_index_inputs.tmp
 
     paste -d"\t" gvcf_inputs.list gvcf_index_inputs.tmp > gvcf_index_map.list
     paste -d"\t" vcf_inputs.list vcf_index_inputs.tmp > vcf_index_map.list
@@ -934,10 +960,16 @@ task CrossCheckFingerprint {
     cpu: cpu
     docker: gatk_docker
     maxRetries: 2
+    azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
   }
 
   output {
     File crosscheck_metrics = output_name
+    File gvcf_inputs = "gvcf_inputs.list"
+    File gvcf_index = "gvcf_index_map.list"
+    File vcf_inputs = "vcf_inputs.list"
+    File vcf_index = "vcf_index_map.list"
+    File sample_names = "sample_name_map.list"
   }
 }
 
