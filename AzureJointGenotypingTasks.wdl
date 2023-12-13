@@ -855,7 +855,7 @@ task CrossCheckFingerprint {
     File sample_names_from_map_fofn
     Int? partition_index
     Int? partition_ammount
-    Int? gvcf_paths_length
+    Int gvcf_paths_length
     File haplotype_database
     String output_base_name
     Boolean scattered = false

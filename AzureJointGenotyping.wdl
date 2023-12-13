@@ -487,6 +487,7 @@ workflow JointGenotyping {
         vcf_paths_fofn = write_lines(ApplyRecalibration.recalibrated_vcf),
         vcf_index_paths_fofn = write_lines(ApplyRecalibration.recalibrated_vcf_index),
         sample_names_from_map_fofn = write_lines(sample_names_from_map),
+        gvcf_paths_length = length(gvcf_paths),
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
         disk = small_disk,
