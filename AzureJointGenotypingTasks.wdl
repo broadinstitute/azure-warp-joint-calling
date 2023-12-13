@@ -31,7 +31,6 @@ task CheckSamplesUnique {
     memory: "1 GiB"
     disk: "10 GB"
     docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
-    maxRetries: 2
   }
 }
 
@@ -66,7 +65,6 @@ task SplitIntervalList {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -195,7 +193,6 @@ task GenotypeGVCFs {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -253,7 +250,6 @@ task GnarlyGenotyper {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -299,7 +295,6 @@ task HardFilterAndMakeSitesOnlyVcf {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -359,7 +354,6 @@ task IndelsVariantRecalibrator {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -425,7 +419,6 @@ task SNPsVariantRecalibratorCreateModel {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -504,7 +497,6 @@ task SNPsVariantRecalibrator {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -569,7 +561,6 @@ task GatherTranches {
     cpu: "2"
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -627,7 +618,6 @@ task ApplyRecalibration {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -718,7 +708,6 @@ task SelectFingerprintSiteVariants {
     cpu: 1
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -764,7 +753,6 @@ task CollectVariantCallingMetrics {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 }
 
@@ -836,7 +824,6 @@ task GatherVariantCallingMetrics {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 
   output {
@@ -959,7 +946,6 @@ task CrossCheckFingerprint {
     disk: disk + " GB"
     cpu: cpu
     docker: gatk_docker
-    maxRetries: 2
     azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
   }
 
@@ -1003,7 +989,6 @@ task GatherPicardMetrics {
     memory: "3.75 GiB"
     disk: disk_size + " GB"
     docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
-    maxRetries: 2
   }
 }
 
@@ -1081,7 +1066,6 @@ task GetFingerprintingIntervalIndices {
     memory: "3750 MiB"
     disk: "10 GB"
     docker: gatk_docker
-    maxRetries: 2
   }
 }
 
@@ -1109,7 +1093,6 @@ task PartitionSampleNameMap {
     memory: "1 GiB"
     disk: "10 GB"
     docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
-    maxRetries: 2
   }
 }
 

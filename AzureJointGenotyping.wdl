@@ -234,6 +234,7 @@ workflow JointGenotyping {
     }
   }
 
+  #TODO: I suspect having write_lines in the input here is breaking call caching
   call Tasks.GatherVcfs as SitesOnlyGatherVcf {
     input:
       input_vcf_fofn = write_lines(HardFilterAndMakeSitesOnlyVcf.sites_only_vcf),
