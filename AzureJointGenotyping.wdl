@@ -461,7 +461,7 @@ workflow JointGenotyping {
           output_base_name = callset_name + "." + idx,
           scattered = true,
           disk = small_disk,
-          gatk_jar = check_fingerprint_gatk_jar
+          gatk_jar = gather_gatk_jar
       }
     }
 
@@ -491,7 +491,7 @@ workflow JointGenotyping {
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
         disk = small_disk,
-        gatk_jar = check_fingerprint_gatk_jar
+        gatk_jar = gather_gatk_jar
     }
   }
 
