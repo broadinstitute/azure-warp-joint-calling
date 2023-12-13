@@ -28,11 +28,6 @@ workflow JointGenotyping {
     #temporary workaround until gatk is released and has a docker
     File gendb_gatk_jar
     File gather_gatk_jar
-    #temporary workaround until localization_optional is implmemented
-    String SAS_token_encoded
-    String SAS_token_decoded
-    #temporary workaround until gatk is released with CheckFingerprint changes
-    File check_fingerprint_gatk_jar
 
     Int small_disk
     Int medium_disk
@@ -475,11 +470,6 @@ workflow JointGenotyping {
   }
 
   if (!defined(cross_check_fingerprint_scatter_partition)) {
-
-  scatter(i in range(length(ApplyRecalibration.recalibrated_vcf))) {
-    String vcf_path_sas = ApplyRecalibration.recalibrated_vcf[i] + SAS_token_decoded
-    String vcf_path_index_sas = ApplyRecalibration.recalibrated_vcf_index[i] + SAS_token_decoded
-  }
 
     call Tasks.CrossCheckFingerprint as CrossCheckFingerprintSolo {
       input:
