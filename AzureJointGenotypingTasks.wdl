@@ -887,7 +887,7 @@ task CrossCheckFingerprint {
 
     while IFS= read -r line; do
       result="$line?$AZURE_STORAGE_SAS_TOKEN"
-      echo "$result" >> gvf_paths.txt
+      echo "$result" >> gvcf_paths.txt
     done < ~{gvcf_paths_fofn}
   
     while IFS= read -r line; do
