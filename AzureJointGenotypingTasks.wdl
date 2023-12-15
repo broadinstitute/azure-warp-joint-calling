@@ -297,6 +297,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 1
   }
 
   output {
