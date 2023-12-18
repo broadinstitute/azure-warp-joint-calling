@@ -25,10 +25,6 @@ workflow JointGenotyping {
     File dbsnp_vcf
     File dbsnp_vcf_index
 
-    #temporary workaround until gatk is released and has a docker
-    File gendb_gatk_jar
-    File gather_gatk_jar
-
     Int small_disk
     Int medium_disk
     Int large_disk
@@ -157,8 +153,7 @@ workflow JointGenotyping {
         ref_dict = ref_dict,
         workspace_dir_name = "genomicsdb",
         disk_size = medium_disk,
-        batch_size = 50,
-        gatk_jar = gendb_gatk_jar
+        batch_size = 50
     }
 
     if (use_gnarly_genotyper) {
@@ -185,8 +180,7 @@ workflow JointGenotyping {
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             ref_dict = ref_dict,
-            dbsnp_vcf = dbsnp_vcf,
-            gatk_jar = gendb_gatk_jar
+            dbsnp_vcf = dbsnp_vcf
         }
       }
 
@@ -194,7 +188,6 @@ workflow JointGenotyping {
         input:
           input_vcf_fofn = write_lines(GnarlyGenotyper.output_vcf),
           output_vcf_name = callset_name + "." + idx + ".gnarly.vcf.gz",
-          gatk_jar = gather_gatk_jar,
           disk_size = large_disk
       }
     }
@@ -210,8 +203,7 @@ workflow JointGenotyping {
           ref_dict = ref_dict,
           dbsnp_vcf = dbsnp_vcf,
           dbsnp_vcf_index = dbsnp_vcf_index,
-          disk_size = medium_disk,
-          gatk_jar = gendb_gatk_jar
+          disk_size = medium_disk
       }
     }
 
@@ -234,7 +226,6 @@ workflow JointGenotyping {
     input:
       input_vcf_fofn = write_lines(HardFilterAndMakeSitesOnlyVcf.sites_only_vcf),
       output_vcf_name = callset_name + ".sites_only.vcf.gz",
-      gatk_jar = gather_gatk_jar,
       disk_size = medium_disk
   }
 
@@ -376,7 +367,6 @@ workflow JointGenotyping {
       input:
         input_vcf_fofn = write_lines(ApplyRecalibration.recalibrated_vcf),
         output_vcf_name = callset_name + ".vcf.gz",
-        gatk_jar = gather_gatk_jar,
         disk_size = large_disk
     }
 
@@ -423,7 +413,6 @@ workflow JointGenotyping {
       input:
         input_vcf_fofn = write_lines(vcfs_to_fingerprint),
         output_vcf_name = callset_name + ".gathered.fingerprinting.vcf.gz",
-        gatk_jar = gather_gatk_jar,
         disk_size = medium_disk
     }
 
@@ -456,8 +445,7 @@ workflow JointGenotyping {
           haplotype_database = haplotype_database,
           output_base_name = callset_name + "." + idx,
           scattered = true,
-          disk = small_disk,
-          gatk_jar = gather_gatk_jar
+          disk = small_disk
       }
     }
 
@@ -481,8 +469,7 @@ workflow JointGenotyping {
         gvcf_paths_length = length(gvcf_paths),
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
-        disk = small_disk,
-        gatk_jar = gather_gatk_jar
+        disk = small_disk
     }
   }
 

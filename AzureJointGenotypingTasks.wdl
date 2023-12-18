@@ -45,7 +45,7 @@ task SplitIntervalList {
     Boolean sample_names_unique_done
     Int disk_size
     String scatter_mode = "BALANCING_WITHOUT_INTERVAL_SUBDIVISION_WITH_OVERFLOW"
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -85,11 +85,10 @@ task ImportGVCFs {
 
     String workspace_dir_name
 
-    File gatk_jar
     Int disk_size
     Int batch_size
 
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -106,8 +105,7 @@ task ImportGVCFs {
     # a significant amount of non-heap memory for native libraries.
     # Also, testing has shown that the multithreaded reader initialization
     # does not scale well beyond 5 threads, so don't increase beyond that.
-    java -Xms8000m -Xmx25000m -jar ~{gatk_jar} \
-      GenomicsDBImport \
+    gatk --java-options "-Xms8000m -Xmx25000m" GenomicsDBImport \
       --genomicsdb-workspace-path ~{workspace_dir_name} \
       --batch-size ~{batch_size} \
       -L ~{interval} \
@@ -155,11 +153,10 @@ task GenotypeGVCFs {
     Boolean keep_combined_raw_annotations = false
     String? additional_annotation
 
-    File gatk_jar
     Int disk_size
     # This is needed for gVCFs generated with GATK3 HaplotypeCaller
     Boolean allow_old_rms_mapping_quality_annotation_data = false
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -174,8 +171,7 @@ task GenotypeGVCFs {
     tar -xf ~{workspace_tar}
     WORKSPACE=$(basename ~{workspace_tar} .tar)
 
-    java -Xms8000m -Xmx25000m -jar ~{gatk_jar} \
-      GenotypeGVCFs \
+    gatk --java-options "-Xms8000m -Xmx25000m" GenotypeGVCFs \
       -R ~{ref_fasta} \
       -O ~{output_vcf_filename} \
       -D ~{dbsnp_vcf} \
@@ -215,8 +211,7 @@ task GnarlyGenotyper {
     String dbsnp_vcf
     Boolean make_annotation_db = false
 
-    File gatk_jar
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -233,8 +228,7 @@ task GnarlyGenotyper {
     tar -xf ~{workspace_tar}
     WORKSPACE=$( basename ~{workspace_tar} .tar)
 
-     java -Xms8000m -Xmx25000m -jar ~{gatk_jar} \
-      GnarlyGenotyper \
+     gatk --java-options "-Xms8000m -Xmx25000m" GnarlyGenotyper \
       -R ~{ref_fasta} \
       -O ~{output_vcf_filename} \
       ~{true="--output-database-name annotationDB.vcf.gz" false="" make_annotation_db} \
@@ -273,7 +267,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     String sites_only_vcf_filename
 
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -330,7 +324,7 @@ task IndelsVariantRecalibrator {
     Int max_gaussians = 4
 
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -392,7 +386,7 @@ task SNPsVariantRecalibratorCreateModel {
     Int max_gaussians = 6
 
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -454,7 +448,7 @@ task SNPsVariantRecalibrator {
     Int max_gaussians = 6
 
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
     Int? machine_mem_mb
 
   }
@@ -516,7 +510,7 @@ task GatherTranches {
     String output_filename
     String mode
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -587,7 +581,7 @@ task ApplyRecalibration {
     Float snp_filter_level
     Boolean use_allele_specific_annotations
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -634,10 +628,9 @@ task GatherVcfs {
 
   input {
     File input_vcf_fofn
-    File gatk_jar
     String output_vcf_name
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   Array[String] input_vcfs = read_lines(input_vcf_fofn)
@@ -648,8 +641,7 @@ task GatherVcfs {
     # --ignore-safety-checks makes a big performance difference so we include it in our invocation.
     # This argument disables expensive checks that the file headers contain the same set of
     # genotyped samples and that files are in order by position of first record.
-    java -Xms6000m -Xmx6500m -jar ~{gatk_jar} \
-      GatherVcfsCloud \
+    gatk --java-options "-Xms6000m -Xmx6500m" GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \
       --input "~{sep="?$AZURE_STORAGE_SAS_TOKEN\" --input \"" input_vcfs}?$AZURE_STORAGE_SAS_TOKEN" \
@@ -680,7 +672,7 @@ task SelectFingerprintSiteVariants {
     File haplotype_database
     String base_output_name
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   #TODO: Make SelectVariants able to stream from https by including a VCF index input in addition to the vcf itself, for now localize
@@ -731,7 +723,7 @@ task CollectVariantCallingMetrics {
     File interval_list
     File ref_dict
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -767,7 +759,7 @@ task GatherVariantCallingMetrics {
     Array[File] input_summaries
     String output_prefix
     Int disk_size
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -851,8 +843,7 @@ task CrossCheckFingerprint {
     String output_base_name
     Boolean scattered = false
     Array[String] expected_inconclusive_samples = []
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.4.0.0"
-    File gatk_jar
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
     Int disk
   }
 
@@ -907,8 +898,7 @@ task CrossCheckFingerprint {
     paste -d"\t" vcf_inputs.list vcf_index_inputs.tmp > vcf_index_map.list
     paste -d"\t" sample_name_map.tmp gvcf_inputs.list  > sample_name_map.list
     
-    java -Xms~{java_mem}m -Xmx~{java_mem}m -jar ~{gatk_jar} \
-      CrosscheckFingerprints \
+    gatk --java-options "-Xms~{java_mem}m -Xmx~{java_mem}m" CrosscheckFingerprints \
       --INPUT gvcf_inputs.list \
       --INPUT_INDEX_MAP gvcf_index_map.list \
       --SECOND_INPUT vcf_inputs.list \
@@ -996,7 +986,7 @@ task GetFingerprintingIntervalIndices {
   input {
     Array[File] unpadded_intervals
     File haplotype_database
-    String gatk_docker = "mshand/genomesinthecloud:gatk_4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
