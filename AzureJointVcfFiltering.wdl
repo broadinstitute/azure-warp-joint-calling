@@ -185,10 +185,10 @@ task ExtractVariantAnnotations {
                 ~{"-L " + targets_interval_list} \
                 -V ~{input_vcf} \
                 -O ~{output_prefix}.extract \
-                --resource:hapmap,training=true,calibration=true ~{resource_vcfs.hapmap_resource_vcf} \
-                --resource:omni,training=true,calibration=true ~{resource_vcfs.omni_resource_vcf} \ 
-                --resource:1000G,training=true ~{resource_vcfs.one_thousand_genomes_resource_vcf} \
-                --resource:mills,training=true,calibration=true ~{resource_vcfs.mills_resource_vcf} \
+                --resource:hapmap,training=true,calibration=true '~{resource_vcfs.hapmap_resource_vcf}' \
+                --resource:omni,training=true,calibration=true '~{resource_vcfs.omni_resource_vcf}' \ 
+                --resource:1000G,training=true '~{resource_vcfs.one_thousand_genomes_resource_vcf}' \
+                --resource:mills,training=true,calibration=true '~{resource_vcfs.mills_resource_vcf}' \
                 ~{extra_args} \
                 -A ~{sep=" -A " annotations}
     }
@@ -247,8 +247,8 @@ task TrainVariantAnnotationsModel {
                 ~{"--model-backend " + model_backend} \
                 ~{"--python-script " + python_script} \
                 ~{"--hyperparameters-json " + hyperparameters_json} \
-                -O ~{output_prefix}.train \
-                ~{extra_args}
+                ~{extra_args} \
+                -O ~{output_prefix}.train               
     }
 
     runtime {
@@ -317,15 +317,16 @@ task ScoreVariantAnnotations {
                 -V ~{input_vcf} \
                 -O ~{output_prefix}.score \
                 -A ~{sep=" -A " annotations} \
-                --resource:hapmap,training=true,calibration=true ~{resource_vcfs.hapmap_resource_vcf} \
-                --resource:omni,training=true,calibration=true ~{resource_vcfs.omni_resource_vcf} \ 
-                --resource:1000G,training=true ~{resource_vcfs.one_thousand_genomes_resource_vcf} \
-                --resource:mills,training=true,calibration=true ~{resource_vcfs.mills_resource_vcf} \
-                --resource:extracted,extracted=true ~{extracted_vcf} \
+                --resource:hapmap,training=true,calibration=true '~{resource_vcfs.hapmap_resource_vcf}' \
+                --resource:omni,training=true,calibration=true '~{resource_vcfs.omni_resource_vcf}' \ 
+                --resource:1000G,training=true '~{resource_vcfs.one_thousand_genomes_resource_vcf}' \
+                --resource:mills,training=true,calibration=true '~{resource_vcfs.mills_resource_vcf}' \
+                --resource:extracted,extracted=true '~{extracted_vcf}' \
                 --model-prefix model-files/~{model_prefix}.train \
                 ~{"--model-backend " + model_backend} \
                 ~{"--python-script " + python_script} \
                 ~{extra_args}
+
     }
 
     runtime {
