@@ -186,7 +186,7 @@ task ExtractVariantAnnotations {
                 -V ~{input_vcf} \
                 -O ~{output_prefix}.extract \
                 --resource:hapmap,training=true,calibration=true '~{resource_vcfs.hapmap_resource_vcf}' \
-                --resource:omni,training=true,calibration=true '~{resource_vcfs.omni_resource_vcf}' \ 
+                --resource:omni,training=true,calibration=true '~{resource_vcfs.omni_resource_vcf}' \
                 --resource:1000G,training=true '~{resource_vcfs.one_thousand_genomes_resource_vcf}' \
                 --resource:mills,training=true,calibration=true '~{resource_vcfs.mills_resource_vcf}' \
                 ~{extra_args} \
