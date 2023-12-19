@@ -1,7 +1,7 @@
 version 1.0
 
 import "AzureJointGenotypingTasks.wdl" as Tasks
-import "https://raw.githubusercontent.com/broadinstitute/gatk/ms_vets_azure/scripts/vcf_site_level_filtering_wdl/JointVcfFiltering.wdl" as Filtering
+import "AzureJointVcfFiltering.wdl" as Filtering
 
 
 # Joint Genotyping for hg38 Whole Genomes and Exomes (has not been tested on hg19)
@@ -232,19 +232,22 @@ workflow JointGenotyping {
       disk_size = medium_disk
   }
 
-  String gcp_resource_args = " --resource:hapmap,training=true,calibration=true gs://gcp-public-data--broad-references/hg38/v0/hapmap_3.3.hg38.vcf.gz --resource:omni,training=true,calibration=true gs://gcp-public-data--broad-references/hg38/v0/1000G_omni2.5.hg38.vcf.gz " + 
-      " --resource:1000G,training=true gs://gcp-public-data--broad-references/hg38/v0/1000G_phase1.snps.high_confidence.hg38.vcf.gz --resource:mills,training=true,calibration=true gs://gcp-public-data--broad-references/hg38/v0/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz "
-  String extract_extra_args = " -L " + targets_interval_list + " "
-
   call Filtering.JointVcfFiltering as TrainAndApplyVETS {
     input:
       input_vcfs = HardFilterAndMakeSitesOnlyVcf.variant_filtered_vcf,
       input_vcf_idxs = HardFilterAndMakeSitesOnlyVcf.variant_filtered_vcf_index,
       sites_only_vcf = SitesOnlyGatherVcf.output_vcf,
       sites_only_vcf_idx = SitesOnlyGatherVcf.output_vcf_index,
+      targets_interval_list = targets_interval_list,
       annotations = snp_recalibration_annotation_values, #the snp list here is a superset of  the indel list
-      extract_extra_args = extract_extra_args,
-      resource_args = gcp_resource_args,
+      resource_vcfs = {"hapmap_resource_vcf": hapmap_resource_vcf,
+        "hapmap_resource_vcf_idx": hapmap_resource_vcf_index,
+        "omni_resource_vcf": omni_resource_vcf,
+        "omni_resource_vcf_idx": omni_resource_vcf_index,
+        "one_thousand_genomes_resource_vcf": one_thousand_genomes_resource_vcf,
+        "one_thousand_genomes_resource_vcf_idx": one_thousand_genomes_resource_vcf_index,
+        "mills_resource_vcf": mills_resource_vcf,
+        "mills_resource_vcf_idx": mills_resource_vcf_index},
       output_prefix = callset_name,
       score_runtime_attributes = {"max_retries":1},
       gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
