@@ -262,6 +262,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     File vcf
     File vcf_index
     Float excess_het_threshold
+    File? targets_interval_list # filters out all variants outside of the targets interval list for targeted sequencing
 
     String variant_filtered_vcf_filename
     String sites_only_vcf_filename
@@ -273,10 +274,13 @@ task HardFilterAndMakeSitesOnlyVcf {
   command <<<
     set -euo pipefail
 
+    ~{"gatk IndexFeatureFile -I " + targets_interval_list}
+
     gatk --java-options "-Xms3000m -Xmx3250m" \
       VariantFiltration \
       --filter-expression "ExcessHet > ~{excess_het_threshold}" \
       --filter-name ExcessHet \
+      ~{"--filter-not-in-mask --mask-name OUTSIDE_OF_TARGETS --mask " + targets_interval_list} \
       -O ~{variant_filtered_vcf_filename} \
       -V ~{vcf}
 
