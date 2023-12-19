@@ -189,8 +189,8 @@ task ExtractVariantAnnotations {
                 --resource:omni,training=true,calibration=true ~{resource_vcfs.omni_resource_vcf} \ 
                 --resource:1000G,training=true ~{resource_vcfs.one_thousand_genomes_resource_vcf} \
                 --resource:mills,training=true,calibration=true ~{resource_vcfs.mills_resource_vcf} \
-                -A ~{sep=" -A " annotations} \
-                ~{extra_args}
+                ~{extra_args} \
+                -A ~{sep=" -A " annotations}
     }
 
     runtime {
