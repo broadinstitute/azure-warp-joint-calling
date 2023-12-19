@@ -248,7 +248,7 @@ task TrainVariantAnnotationsModel {
                 ~{"--python-script " + python_script} \
                 ~{"--hyperparameters-json " + hyperparameters_json} \
                 ~{extra_args} \
-                -O ~{output_prefix}.train               
+                -O ~{output_prefix}.train
     }
 
     runtime {
@@ -318,7 +318,7 @@ task ScoreVariantAnnotations {
                 -O ~{output_prefix}.score \
                 -A ~{sep=" -A " annotations} \
                 --resource:hapmap,training=true,calibration=true '~{resource_vcfs.hapmap_resource_vcf}' \
-                --resource:omni,training=true,calibration=true '~{resource_vcfs.omni_resource_vcf}' \ 
+                --resource:omni,training=true,calibration=true '~{resource_vcfs.omni_resource_vcf}' \
                 --resource:1000G,training=true '~{resource_vcfs.one_thousand_genomes_resource_vcf}' \
                 --resource:mills,training=true,calibration=true '~{resource_vcfs.mills_resource_vcf}' \
                 --resource:extracted,extracted=true '~{extracted_vcf}' \
