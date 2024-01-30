@@ -12,11 +12,7 @@ workflow JointGenotyping {
     File unpadded_intervals_file
 
     String callset_name
-    #TODO: make sample_name_map from the gvcf_paths?
     File sample_name_map
-
-    File gvcf_paths_fofn
-    File gvcf_path_indexes_fofn
 
     File ref_fasta
     File ref_fasta_index
@@ -78,8 +74,6 @@ workflow JointGenotyping {
 
   Array[Array[String]] sample_name_map_lines_t = transpose(sample_name_map_lines)
   Array[String] sample_names_from_map = sample_name_map_lines_t[0]
-  #Array[File] gvcf_paths_from_map = sample_name_map_lines_t[1]
-  #Array[File] gvcf_index_paths_from_map = sample_name_map_lines_t[2]
 
   # Make a 2.5:1 interval number to samples in callset ratio interval list.
   # We allow overriding the behavior by specifying the desired number of vcfs
@@ -95,11 +89,11 @@ workflow JointGenotyping {
   Int unbounded_scatter_count = select_first([top_level_scatter_count, round(unbounded_scatter_count_scale_factor * num_gvcfs)])
   Int scatter_count = if unbounded_scatter_count > 2 then unbounded_scatter_count else 2 #I think weird things happen if scatterCount is 1 -- IntervalListTools is noop?
 
-  #call Tasks.CheckSamplesUnique {
-  #  input:
-  #    sample_name_map = sample_name_map_for_fingerprinting,
-  #    sample_num_threshold = 1
-  #}
+  call Tasks.CheckSamplesUniqueAndMakeFofn as CheckSamplesUniqueAndMakeFofn {
+    input:
+      sample_name_map = sample_name_map,
+      sample_num_threshold = 5
+  }
 
   call Tasks.SplitIntervalList {
     input:
@@ -111,27 +105,6 @@ workflow JointGenotyping {
       disk_size = small_disk,
       sample_names_unique_done = true
   }
-
-  call Tasks.SplitFofn as SplitGvcfFofn {
-    input:
-      largeFofn = gvcf_paths_fofn
-  }
-
-  call Tasks.SplitFofn as SplitGvcfIndexFofn {
-    input:
-      largeFofn = gvcf_path_indexes_fofn
-  }
-
-  scatter (i in range(length(SplitGvcfFofn.tiny_fofns))) {
-    Array[File] gvcf_path_arrays = read_lines(SplitGvcfFofn.tiny_fofns[i])
-    Array[File] gvcf_index_path_arrays = read_lines(SplitGvcfIndexFofn.tiny_fofns[i])
-  }
-
-  Array[File] gvcf_paths = flatten(gvcf_path_arrays)
-  Array[File] gvcf_path_indexes = flatten(gvcf_index_path_arrays)
-
-  File header_vcf = gvcf_paths[0]
-  File header_vcf_index = gvcf_path_indexes[0]
 
   Array[File] unpadded_intervals = SplitIntervalList.output_intervals
 
@@ -145,8 +118,8 @@ workflow JointGenotyping {
       input:
         sample_name_map = sample_name_map,
         # need to provide an example header in order to stream from azure, so use the first gvcf
-        header_vcf = header_vcf,
-        header_vcf_index = header_vcf_index,
+        header_vcf = CheckSamplesUniqueAndMakeFofn.header_vcf,
+        header_vcf_index = CheckSamplesUniqueAndMakeFofn.header_vcf_index,
         interval = unpadded_intervals[idx],
         ref_fasta = ref_fasta,
         ref_fasta_index = ref_fasta_index,
@@ -434,14 +407,14 @@ workflow JointGenotyping {
 
       call Tasks.CrossCheckFingerprint as CrossCheckFingerprintsScattered {
         input:
-          gvcf_paths_fofn = write_lines(gvcf_paths),
-          gvcf_index_paths_fofn = write_lines(gvcf_path_indexes),
+          gvcf_paths_fofn = CheckSamplesUniqueAndMakeFofn.gvcf_paths_fofn,
+          gvcf_index_paths_fofn = CheckSamplesUniqueAndMakeFofn.gvcf_index_paths_fofn,
           vcf_paths_fofn = write_lines([SelectFingerprintSiteVariants.output_vcf]),
           vcf_index_paths_fofn = write_lines([SelectFingerprintSiteVariants.output_vcf_index]),
           sample_names_from_map_fofn = write_lines(sample_names_from_map),
           partition_index = parition_scaled,
           partition_ammount = cross_check_fingerprint_scatter_partition,
-          gvcf_paths_length = length(gvcf_paths),
+          gvcf_paths_length = num_gvcfs,
           haplotype_database = haplotype_database,
           output_base_name = callset_name + "." + idx,
           scattered = true,
@@ -461,12 +434,12 @@ workflow JointGenotyping {
 
     call Tasks.CrossCheckFingerprint as CrossCheckFingerprintSolo {
       input:
-        gvcf_paths_fofn = write_lines(gvcf_paths),
-        gvcf_index_paths_fofn = write_lines(gvcf_path_indexes),
+        gvcf_paths_fofn = CheckSamplesUniqueAndMakeFofn.gvcf_paths_fofn,
+        gvcf_index_paths_fofn = CheckSamplesUniqueAndMakeFofn.gvcf_index_paths_fofn,
         vcf_paths_fofn = write_lines(ApplyRecalibration.recalibrated_vcf),
         vcf_index_paths_fofn = write_lines(ApplyRecalibration.recalibrated_vcf_index),
         sample_names_from_map_fofn = write_lines(sample_names_from_map),
-        gvcf_paths_length = length(gvcf_paths),
+        gvcf_paths_length = num_gvcfs,
         haplotype_database = haplotype_database,
         output_base_name = callset_name,
         disk = small_disk

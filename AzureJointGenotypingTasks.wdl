@@ -1,13 +1,13 @@
 version 1.0
 
 
-task CheckSamplesUnique {
+task CheckSamplesUniqueAndMakeFofn {
   input {
     File sample_name_map
     Int sample_num_threshold = 50
   }
 
-  command {
+  command <<<
     set -euo pipefail
     if [[ $(cut -f 1 ~{sample_name_map} | wc -l) -ne $(cut -f 1 ~{sample_name_map} | sort | uniq | wc -l) ]]
     then
@@ -21,10 +21,34 @@ task CheckSamplesUnique {
     else
       echo true
     fi
-  }
+
+    # Transform GenomicsDB sample map to generic GVCF FOFNs
+    while IFS= read -r line; do
+        # Extract relevant information
+        account_name=$(echo "$line" | grep -oP 'az://\K[^@]+')
+        container_path=$(echo "$line" | grep -oP '@\K[^/]+')
+        blob_path=$(echo "$line" | grep -oP '@\S+$' | sed 's/^@//')
+
+        # Construct the transformed URL and index
+        transformed_gvcf="https://${account_name}.blob.core.windows.net/${container_path}/${blob_path}"
+        transformed_index="https://${account_name}.blob.core.windows.net/${container_path}/${blob_path}.tbi"
+
+        # Append the transformed line to the output file
+        echo "$transformed_gvcf" >> "gvcf_paths.txt"
+        echo "$transformed_gvcf_index" >> "gvcf_index_paths.txt"
+    done < ~{sample_name_map}
+
+    # Grab first GVCF for example header for GenomicsDB to stream from Azure
+    head -n 1 gvcf_paths.txt > header_vcf.txt
+    head -n 1 gvcf_index_paths.txt > header_vcf_index.txt
+  >>>
 
   output {
     Boolean samples_unique = read_boolean(stdout())
+    File gvcf_paths_fofn = "gvcf_paths.txt"
+    File gvcf_index_paths_fofn = "gvcf_index_paths.txt"
+    String header_vcf = read_string("header_vcf.txt")
+    String header_vcf_index = read_string("header_vcf_index.txt")
   }
 
   runtime {
@@ -638,13 +662,19 @@ task GatherVcfs {
   command <<<
     set -euo pipefail
 
+    suffix_text="?$AZURE_STORAGE_SAS_TOKEN"
+    prefix_text="--input "
+    input_file=~{input_vcf_fofn}
+
+    sed "s|^|${prefix_text}|;s|$|${suffix_text}|" "$input_file" > args.txt
+
     # --ignore-safety-checks makes a big performance difference so we include it in our invocation.
     # This argument disables expensive checks that the file headers contain the same set of
     # genotyped samples and that files are in order by position of first record.
     gatk --java-options "-Xms6000m -Xmx6500m" GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \
-      --input "~{sep="?$AZURE_STORAGE_SAS_TOKEN\" --input \"" input_vcfs}?$AZURE_STORAGE_SAS_TOKEN" \
+      --arguments_file args.txt \
       --output ~{output_vcf_name}
 
     tabix ~{output_vcf_name}
@@ -675,7 +705,7 @@ task SelectFingerprintSiteVariants {
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
-  #TODO: Make SelectVariants able to stream from https by including a VCF index input in addition to the vcf itself, for now localize
+  #TODO: When GATK SelectVariants can stream from https by including a VCF index input then make localiztion of the input here optional. broadinstitute/gatk#8568
   parameter_meta {
     input_vcf: {
       localization_optional: false
