@@ -31,12 +31,13 @@ task CheckSamplesUniqueAndMakeFofn {
 
         # Construct the transformed URL and index
         transformed_gvcf="https://${account_name}.blob.core.windows.net/${container_name}${blob_path}"
-        transformed_gvcf_index="https://${account_name}.blob.core.windows.net/${container_name}${blob_path}.tbi"
 
         # Append the transformed line to the output file
         echo "$transformed_gvcf" >> "gvcf_paths.txt"
-        echo "$transformed_gvcf_index" >> "gvcf_index_paths.txt"
     done < ~{sample_name_map}
+
+    # add .tbi for index files. Only works for gzipped input and if index is colocated.
+    sed 's/$/.tbi/' gvcf_paths.txt > gvcf_index_paths.txt
 
     # Grab first GVCF for example header for GenomicsDB to stream from Azure
     head -n 1 gvcf_paths.txt > header_vcf.txt
