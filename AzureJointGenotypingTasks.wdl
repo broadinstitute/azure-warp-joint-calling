@@ -25,13 +25,13 @@ task CheckSamplesUniqueAndMakeFofn {
     # Transform GenomicsDB sample map to generic GVCF FOFNs
     while IFS= read -r line; do
         # Extract relevant information
-        account_name=$(echo "$line" | grep -oP 'az://\K[^@]+')
-        container_path=$(echo "$line" | grep -oP '@\K[^/]+')
-        blob_path=$(echo "$line" | grep -oP '@\S+$' | sed 's/^@//')
+        container_name=$(echo "$line" | grep -oP 'az://\K[^@]+')
+        account_name=$(echo "$line" | grep -oP '@\K([^/]+)(?=\.blob\.core\.windows\.net)')
+        blob_path=$(echo "$line" | grep -oP '(\.blob\.core\.windows\.net)\K[^@]+')
 
         # Construct the transformed URL and index
-        transformed_gvcf="https://${account_name}.blob.core.windows.net/${container_path}/${blob_path}"
-        transformed_gvcf_index="https://${account_name}.blob.core.windows.net/${container_path}/${blob_path}.tbi"
+        transformed_gvcf="https://${container_name}.blob.core.windows.net/${account_name}${blob_path}"
+        transformed_gvcf_index="https://${container_name}.blob.core.windows.net/${account_name}${blob_path}.tbi"
 
         # Append the transformed line to the output file
         echo "$transformed_gvcf" >> "gvcf_paths.txt"
