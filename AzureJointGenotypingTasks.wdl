@@ -37,7 +37,7 @@ task CheckSamplesUniqueAndMakeFofn {
     done < ~{sample_name_map}
 
     # add .tbi for index files. Only works for gzipped input and if index is colocated.
-    sed 's/$/.tbi/' gvcf_paths.txt > gvcf_index_paths.txt
+    sed 's/\r$//; s/$/.tbi/' gvcf_paths.txt > gvcf_index_paths.txt
 
     # Grab first GVCF for example header for GenomicsDB to stream from Azure
     head -n 1 gvcf_paths.txt > header_vcf.txt
