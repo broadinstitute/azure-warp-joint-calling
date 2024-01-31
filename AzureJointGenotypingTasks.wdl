@@ -31,7 +31,7 @@ task CheckSamplesUniqueAndMakeFofn {
 
         # Construct the transformed URL and index
         transformed_gvcf="https://${account_name}.blob.core.windows.net/${container_path}/${blob_path}"
-        transformed_index="https://${account_name}.blob.core.windows.net/${container_path}/${blob_path}.tbi"
+        transformed_gvcf_index="https://${account_name}.blob.core.windows.net/${container_path}/${blob_path}.tbi"
 
         # Append the transformed line to the output file
         echo "$transformed_gvcf" >> "gvcf_paths.txt"
