@@ -1,13 +1,13 @@
 version 1.0
 
 
-task CheckSamplesUnique {
+task CheckSamplesUniqueAndMakeFofn {
   input {
     File sample_name_map
     Int sample_num_threshold = 50
   }
 
-  command {
+  command <<<
     set -euo pipefail
     if [[ $(cut -f 1 ~{sample_name_map} | wc -l) -ne $(cut -f 1 ~{sample_name_map} | sort | uniq | wc -l) ]]
     then
@@ -21,16 +21,41 @@ task CheckSamplesUnique {
     else
       echo true
     fi
-  }
+
+    # Transform GenomicsDB sample map to generic GVCF FOFNs
+    while IFS= read -r line; do
+        # Extract relevant information
+        container_name=$(echo "$line" | grep -oP 'az://\K[^@]+')
+        account_name=$(echo "$line" | grep -oP '@\K([^/]+)(?=\.blob\.core\.windows\.net)')
+        blob_path=$(echo "$line" | grep -oP '(\.blob\.core\.windows\.net)\K[^@]+')
+
+        # Construct the transformed URL and index
+        transformed_gvcf="https://${account_name}.blob.core.windows.net/${container_name}${blob_path}"
+
+        # Append the transformed line to the output file
+        echo "$transformed_gvcf" >> "gvcf_paths.txt"
+    done < ~{sample_name_map}
+
+    # add .tbi for index files. Only works for gzipped input and if index is colocated.
+    sed 's/\r$//; s/$/.tbi/' gvcf_paths.txt > gvcf_index_paths.txt
+
+    # Grab first GVCF for example header for GenomicsDB to stream from Azure
+    head -n 1 gvcf_paths.txt > header_vcf.txt
+    head -n 1 gvcf_index_paths.txt > header_vcf_index.txt
+  >>>
 
   output {
     Boolean samples_unique = read_boolean(stdout())
+    File gvcf_paths_fofn = "gvcf_paths.txt"
+    File gvcf_index_paths_fofn = "gvcf_index_paths.txt"
+    String header_vcf = read_string("header_vcf.txt")
+    String header_vcf_index = read_string("header_vcf_index.txt")
   }
 
   runtime {
     memory: "1 GiB"
     disk: "10 GB"
-    docker: "gcscromwellacr.azurecr.io/us.gcr.io/broad-gotc-prod/python:2.7"
+    docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
   }
 }
 
@@ -44,8 +69,8 @@ task SplitIntervalList {
     File ref_dict
     Boolean sample_names_unique_done
     Int disk_size
-    String scatter_mode = "BALANCING_WITHOUT_INTERVAL_SUBDIVISION_WITH_OVERFLOW"
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String scatter_mode = "INTERVAL_SUBDIVISION"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -61,7 +86,8 @@ task SplitIntervalList {
     >>>
 
   runtime {
-    memory: "3750 MiB"
+    memory: "8 GB"
+    cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
   }
@@ -74,9 +100,9 @@ task SplitIntervalList {
 task ImportGVCFs {
 
   input {
-    Array[String] sample_names
-    Array[File] gvcf_files
-    Array[File] gvcf_index_files
+    File sample_name_map
+    File header_vcf
+    File header_vcf_index
     File interval
     File ref_fasta
     File ref_fasta_index
@@ -87,7 +113,7 @@ task ImportGVCFs {
     Int disk_size
     Int batch_size
 
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -104,15 +130,17 @@ task ImportGVCFs {
     # a significant amount of non-heap memory for native libraries.
     # Also, testing has shown that the multithreaded reader initialization
     # does not scale well beyond 5 threads, so don't increase beyond that.
-    gatk --java-options "-Xms8000m -Xmx25000m" \
-      GenomicsDBImport \
+    gatk --java-options "-Xms8000m -Xmx25000m" GenomicsDBImport \
       --genomicsdb-workspace-path ~{workspace_dir_name} \
       --batch-size ~{batch_size} \
       -L ~{interval} \
-      -V ~{sep=' -V ' gvcf_files} \
+      --sample-name-map ~{sample_name_map} \
       --reader-threads 5 \
       --merge-input-intervals \
-      --consolidate
+      --consolidate \
+      --header ~{header_vcf} \
+      --avoid-nio \
+      --bypass-feature-reader
 
     tar -cf ~{workspace_dir_name}.tar ~{workspace_dir_name}
   >>>
@@ -122,6 +150,8 @@ task ImportGVCFs {
     cpu: 4
     disk: disk_size + " GB"
     docker: gatk_docker
+    azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
+    maxRetries: 1
   }
 
   output {
@@ -151,7 +181,7 @@ task GenotypeGVCFs {
     Int disk_size
     # This is needed for gVCFs generated with GATK3 HaplotypeCaller
     Boolean allow_old_rms_mapping_quality_annotation_data = false
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -166,8 +196,7 @@ task GenotypeGVCFs {
     tar -xf ~{workspace_tar}
     WORKSPACE=$(basename ~{workspace_tar} .tar)
 
-    gatk --java-options "-Xms8000m -Xmx25000m" \
-      GenotypeGVCFs \
+    gatk --java-options "-Xms8000m -Xmx25000m" GenotypeGVCFs \
       -R ~{ref_fasta} \
       -O ~{output_vcf_filename} \
       -D ~{dbsnp_vcf} \
@@ -186,6 +215,7 @@ task GenotypeGVCFs {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 1
   }
 
   output {
@@ -206,7 +236,7 @@ task GnarlyGenotyper {
     String dbsnp_vcf
     Boolean make_annotation_db = false
 
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -223,8 +253,7 @@ task GnarlyGenotyper {
     tar -xf ~{workspace_tar}
     WORKSPACE=$( basename ~{workspace_tar} .tar)
 
-    gatk --java-options "-Xms8000m -Xmx25000m" \
-      GnarlyGenotyper \
+     gatk --java-options "-Xms8000m -Xmx25000m" GnarlyGenotyper \
       -R ~{ref_fasta} \
       -O ~{output_vcf_filename} \
       ~{true="--output-database-name annotationDB.vcf.gz" false="" make_annotation_db} \
@@ -263,7 +292,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     String sites_only_vcf_filename
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -287,6 +316,7 @@ task HardFilterAndMakeSitesOnlyVcf {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 1
   }
 
   output {
@@ -319,7 +349,7 @@ task IndelsVariantRecalibrator {
     Int max_gaussians = 4
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -381,7 +411,7 @@ task SNPsVariantRecalibratorCreateModel {
     Int max_gaussians = 6
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -443,7 +473,7 @@ task SNPsVariantRecalibrator {
     Int max_gaussians = 6
 
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
     Int? machine_mem_mb
 
   }
@@ -505,7 +535,7 @@ task GatherTranches {
     String output_filename
     String mode
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -576,7 +606,7 @@ task ApplyRecalibration {
     Float snp_filter_level
     Boolean use_allele_specific_annotations
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -610,6 +640,7 @@ task ApplyRecalibration {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 1
   }
 
   output {
@@ -621,29 +652,30 @@ task ApplyRecalibration {
 task GatherVcfs {
 
   input {
-    Array[File] input_vcfs
+    File input_vcf_fofn
     String output_vcf_name
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
-  parameter_meta {
-    input_vcfs: {
-      localization_optional: true
-    }
-  }
+  Array[String] input_vcfs = read_lines(input_vcf_fofn)
 
   command <<<
     set -euo pipefail
 
+    suffix_text="?$AZURE_STORAGE_SAS_TOKEN"
+    prefix_text="--input "
+    input_file=~{input_vcf_fofn}
+
+    sed "s|^|${prefix_text}|;s|$|${suffix_text//&/\\&}|" "$input_file" > args.txt
+
     # --ignore-safety-checks makes a big performance difference so we include it in our invocation.
     # This argument disables expensive checks that the file headers contain the same set of
     # genotyped samples and that files are in order by position of first record.
-    gatk --java-options "-Xms6000m -Xmx6500m" \
-      GatherVcfsCloud \
+    gatk --java-options "-Xms6000m -Xmx6500m" GatherVcfsCloud \
       --ignore-safety-checks \
       --gather-type BLOCK \
-      --input ~{sep=" --input " input_vcfs} \
+      --arguments_file args.txt \
       --output ~{output_vcf_name}
 
     tabix ~{output_vcf_name}
@@ -654,6 +686,7 @@ task GatherVcfs {
     cpu: "1"
     disk: disk_size + " GB"
     docker: gatk_docker
+    azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
   }
 
   output {
@@ -666,15 +699,17 @@ task SelectFingerprintSiteVariants {
 
   input {
     File input_vcf
+    File input_vcf_index
     File haplotype_database
     String base_output_name
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
+  #TODO: When GATK SelectVariants can stream from https by including a VCF index input then make localiztion of the input here optional. broadinstitute/gatk#8568
   parameter_meta {
     input_vcf: {
-      localization_optional: true
+      localization_optional: false
     }
   }
 
@@ -719,7 +754,7 @@ task CollectVariantCallingMetrics {
     File interval_list
     File ref_dict
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -755,7 +790,7 @@ task GatherVariantCallingMetrics {
     Array[File] input_summaries
     String output_prefix
     Int disk_size
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   parameter_meta {
@@ -827,53 +862,65 @@ task GatherVariantCallingMetrics {
 task CrossCheckFingerprint {
 
   input {
-    Array[File] gvcf_paths
-    Array[File] vcf_paths
-    File sample_name_map
+    File gvcf_paths_fofn
+    File vcf_paths_fofn
+    File gvcf_index_paths_fofn
+    File vcf_index_paths_fofn
+    File sample_names_from_map_fofn
+    Int? partition_index
+    Int? partition_ammount
+    Int gvcf_paths_length
     File haplotype_database
     String output_base_name
     Boolean scattered = false
     Array[String] expected_inconclusive_samples = []
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
+    Int disk
   }
 
-  parameter_meta {
-    gvcf_paths: {
-      localization_optional: true
-    }
-    vcf_paths: {
-      localization_optional: true
-    }
-  }
-
-  Int num_gvcfs = length(gvcf_paths)
+  # Handle partitioning if provided
+  Int partition_start  = if defined(partition_index) then partition_index - partition_ammount + 1 else 1
+  Int partition_end = if defined(partition_index) && partition_index < gvcf_paths_length then partition_index else gvcf_paths_length
+  Int num_gvcfs = partition_end - partition_start + 1
   Int cpu = if num_gvcfs < 32 then num_gvcfs else 32
   # Compute memory to use based on the CPU count, following the pattern of
   # 3.75GiB / cpu used by GCP's pricing: https://cloud.google.com/compute/pricing
   Int memMb = round(cpu * 3.75 * 1024)
   Int java_mem = memMb - 512
-  Int disk = 100
 
   String output_name = output_base_name + ".fingerprintcheck"
 
   command <<<
     set -eu
 
-    gvcfInputsList=~{write_lines(gvcf_paths)}
-    vcfInputsList=~{write_lines(vcf_paths)}
+    touch gvcf_paths.txt
+    touch gvcf_index_paths.txt
+    touch vcf_paths.txt
+    touch vcf_index_paths.txt
 
-    cp $gvcfInputsList gvcf_inputs.list
-    cp $vcfInputsList vcf_inputs.list
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{gvcf_paths_fofn} > gvcf_paths.txt
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{gvcf_index_paths_fofn} > gvcf_index_paths.txt
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{vcf_paths_fofn} > vcf_paths.txt
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{vcf_index_paths_fofn} > vcf_index_paths.txt
 
-    ## kcibul -- remove extra columns we added for azure
-    cat ~{sample_name_map} | cut -f1,2 > two_column_sample_name_map.txt
+    tail -n +~{partition_start} gvcf_paths.txt | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_inputs.list
+    tail -n +~{partition_start} gvcf_index_paths.txt | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_index_inputs.tmp
+    tail -n +~{partition_start} ~{sample_names_from_map_fofn} | head -n $(( ~{partition_end}-~{partition_start}+1 )) > sample_name_map.tmp
+
+    cp vcf_paths.txt vcf_inputs.list
+    cp vcf_index_paths.txt vcf_index_inputs.tmp
+
+    paste -d"\t" gvcf_inputs.list gvcf_index_inputs.tmp > gvcf_index_map.list
+    paste -d"\t" vcf_inputs.list vcf_index_inputs.tmp > vcf_index_map.list
+    paste -d"\t" sample_name_map.tmp gvcf_inputs.list  > sample_name_map.list
     
-    gatk --java-options "-Xms~{java_mem}m -Xmx~{java_mem}m" \
-      CrosscheckFingerprints \
+    gatk --java-options "-Xms~{java_mem}m -Xmx~{java_mem}m" CrosscheckFingerprints \
       --INPUT gvcf_inputs.list \
+      --INPUT_INDEX_MAP gvcf_index_map.list \
       --SECOND_INPUT vcf_inputs.list \
+      --SECOND_INPUT_INDEX_MAP vcf_index_map.list \
       --HAPLOTYPE_MAP ~{haplotype_database} \
-      --INPUT_SAMPLE_FILE_MAP two_column_sample_name_map.txt \
+      --INPUT_SAMPLE_FILE_MAP sample_name_map.list \
       --CROSSCHECK_BY SAMPLE \
       --CROSSCHECK_MODE CHECK_SAME_SAMPLE \
       --NUM_THREADS ~{cpu} \
@@ -907,7 +954,9 @@ task CrossCheckFingerprint {
   runtime {
     memory: memMb + " MiB"
     disk: disk + " GB"
+    cpu: cpu
     docker: gatk_docker
+    azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
   }
 
   output {
@@ -944,7 +993,7 @@ task GatherPicardMetrics {
     cpu: 1
     memory: "3.75 GiB"
     disk: disk_size + " GB"
-    docker: "gcscromwellacr.azurecr.io/us.gcr.io/broad-gotc-prod/python:2.7"
+    docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
   }
 }
 
@@ -953,7 +1002,7 @@ task GetFingerprintingIntervalIndices {
   input {
     Array[File] unpadded_intervals
     File haplotype_database
-    String gatk_docker = "gcscromwellacr.azurecr.io/us.gcr.io/broad-gatk/gatk:4.2.6.1"
+    String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
   command <<<
@@ -1048,6 +1097,23 @@ task PartitionSampleNameMap {
   runtime {
     memory: "1 GiB"
     disk: "10 GB"
-    docker: "gcscromwellacr.azurecr.io/us.gcr.io/broad-gotc-prod/python:2.7"
+    docker: "mshand/genomicsinthecloud:broad-gotc-prod_python_2.7"
   }
+}
+
+task SplitFofn {
+    input {
+      File largeFofn
+    }
+    command {
+        mkdir sandbox
+        split -l 5000 ${largeFofn} sandbox/
+    }
+
+    output {
+        Array[File] tiny_fofns = glob("sandbox/*")
+    }
+    runtime {
+        docker: "ubuntu:latest"
+    }
 }
