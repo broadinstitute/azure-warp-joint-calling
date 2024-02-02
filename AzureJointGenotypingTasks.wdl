@@ -898,25 +898,10 @@ task CrossCheckFingerprint {
     touch vcf_paths.txt
     touch vcf_index_paths.txt
 
-    while IFS= read -r line; do
-      result="$line?$AZURE_STORAGE_SAS_TOKEN"
-      echo "$result" >> gvcf_paths.txt
-    done < ~{gvcf_paths_fofn}
-  
-    while IFS= read -r line; do
-      result="$line?$AZURE_STORAGE_SAS_TOKEN"
-      echo "$result" >> gvcf_index_paths.txt
-    done < ~{gvcf_index_paths_fofn}
-
-    while IFS= read -r line; do
-      result="$line?$AZURE_STORAGE_SAS_TOKEN"
-      echo "$result" >> vcf_paths.txt
-    done < ~{vcf_paths_fofn}
-
-    while IFS= read -r line; do
-      result="$line?$AZURE_STORAGE_SAS_TOKEN"
-      echo "$result" >> vcf_index_paths.txt
-    done < ~{vcf_index_paths_fofn}
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{gvcf_paths_fofn} > gvcf_paths.txt
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{gvcf_index_paths_fofn} > gvcf_index_paths.txt
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{vcf_paths_fofn} > vcf_paths.txt
+    sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{vcf_index_paths_fofn} > vcf_index_paths.txt
 
     tail -n +~{partition_start} gvcf_paths.txt | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_inputs.list
     tail -n +~{partition_start} gvcf_index_paths.txt | head -n $(( ~{partition_end}-~{partition_start}+1 )) > gvcf_index_inputs.tmp
