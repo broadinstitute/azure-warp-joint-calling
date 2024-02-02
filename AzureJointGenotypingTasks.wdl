@@ -667,7 +667,7 @@ task GatherVcfs {
     prefix_text="--input "
     input_file=~{input_vcf_fofn}
 
-    sed "s|^|${prefix_text}|;s|$|${suffix_text}|" "$input_file" > args.txt
+    sed "s|^|${prefix_text}|;s|$|${suffix_text//&/\\&}|" "$input_file" > args.txt
 
     # --ignore-safety-checks makes a big performance difference so we include it in our invocation.
     # This argument disables expensive checks that the file headers contain the same set of
