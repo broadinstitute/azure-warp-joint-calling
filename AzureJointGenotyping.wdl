@@ -85,7 +85,7 @@ workflow JointGenotyping {
   call Tasks.CheckSamplesUniqueAndMakeFofn as CheckSamplesUniqueAndMakeFofn {
     input:
       sample_name_map = sample_name_map,
-      sample_num_threshold = 5
+      sample_num_threshold = 1
   }
 
   call Tasks.SplitIntervalList {
