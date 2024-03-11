@@ -23,7 +23,7 @@ task CheckSamplesUniqueAndMakeFofn {
     fi
 
     # Transform GenomicsDB sample map to generic GVCF FOFNs
-    while IFS= read line; do
+    while IFS= read -r line; do
         # Extract relevant information
         container_name=$(echo "$line" | grep -oP 'az://\K[^@]+')
         account_name=$(echo "$line" | grep -oP '@\K([^/]+)(?=\.blob\.core\.windows\.net)')
