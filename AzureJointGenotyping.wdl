@@ -303,7 +303,7 @@ workflow JointGenotyping {
 
     # Get partitions by partition number of gvcfs, including any remainder in the last partition
     # Subsetting happens in the CrossCheckFingerprints task
-    Array[Int] partitions = range((num_gvcfs+cross_check_fingerprint_scatter_partition)/cross_check_fingerprint_scatter_partition)
+    Array[Int] partitions = range(ceil(num_gvcfs/cross_check_fingerprint_scatter_partition))
 
     scatter (idx in range(length(partitions))) {
       Int parition_scaled = (partitions[idx] + 1) * cross_check_fingerprint_scatter_partition
