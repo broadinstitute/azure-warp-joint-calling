@@ -276,7 +276,8 @@ workflow JointGenotyping {
     call Tasks.GetFingerprintingIntervalIndices {
       input:
         unpadded_intervals = unpadded_intervals,
-        haplotype_database = haplotype_database
+        haplotype_database = haplotype_database,
+        disk_size = small_disk
     }
 
     Array[Int] fingerprinting_indices = GetFingerprintingIntervalIndices.indices_to_fingerprint

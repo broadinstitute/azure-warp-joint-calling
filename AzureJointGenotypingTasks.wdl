@@ -1007,6 +1007,7 @@ task GetFingerprintingIntervalIndices {
     Array[File] unpadded_intervals
     File haplotype_database
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
+    Int disk_size = 10
   }
 
   command <<<
@@ -1073,7 +1074,7 @@ task GetFingerprintingIntervalIndices {
   runtime {
     cpu: 2
     memory: "3750 MiB"
-    disk: "10 GB"
+    disk: disk_size + " GB"
     docker: gatk_docker
   }
 }
