@@ -71,6 +71,7 @@ task SplitIntervalList {
     Int disk_size
     String scatter_mode = "INTERVAL_SUBDIVISION"
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
+    String call_cache_dummy_variable = "" #volatile could not be parameterized for large callsets
   }
 
   parameter_meta {
@@ -90,6 +91,7 @@ task SplitIntervalList {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 1
   }
 
   output {
@@ -233,7 +235,7 @@ task GnarlyGenotyper {
     File ref_fasta
     File ref_fasta_index
     File ref_dict
-    String dbsnp_vcf
+    File dbsnp_vcf
     Boolean make_annotation_db = false
 
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
@@ -271,6 +273,7 @@ task GnarlyGenotyper {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 1
   }
 
   output {
@@ -662,8 +665,6 @@ task GatherVcfs {
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
-  Array[String] input_vcfs = read_lines(input_vcf_fofn)
-
   command <<<
     set -euo pipefail
 
@@ -692,6 +693,7 @@ task GatherVcfs {
     disk: disk_size + " GB"
     docker: gatk_docker
     azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
+    maxRetries: 1
   }
 
   output {
@@ -1009,6 +1011,7 @@ task GetFingerprintingIntervalIndices {
     Array[File] unpadded_intervals
     File haplotype_database
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
+    Int disk_size = 10
   }
 
   command <<<
@@ -1075,7 +1078,7 @@ task GetFingerprintingIntervalIndices {
   runtime {
     cpu: 2
     memory: "3750 MiB"
-    disk: "10 GB"
+    disk: disk_size + " GB"
     docker: gatk_docker
   }
 }
