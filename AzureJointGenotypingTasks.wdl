@@ -671,6 +671,7 @@ task GatherVcfs {
     prefix_text="--input "
     input_file=~{input_vcf_fofn}
 
+    # Add SAS token to the paths, escaping the & character since it is included in the SAS token
     sed "s|^|${prefix_text}|;s|$|${suffix_text//&/\\&}|" "$input_file" > args.txt
 
     # --ignore-safety-checks makes a big performance difference so we include it in our invocation.
@@ -902,6 +903,7 @@ task CrossCheckFingerprint {
     touch vcf_paths.txt
     touch vcf_index_paths.txt
 
+    # Add SAS token to the paths, escaping the & character since it is included in the SAS token
     sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{gvcf_paths_fofn} > gvcf_paths.txt
     sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{gvcf_index_paths_fofn} > gvcf_index_paths.txt
     sed "s/\r$//; s/$/?${AZURE_STORAGE_SAS_TOKEN//&/\\&}/g" ~{vcf_paths_fofn} > vcf_paths.txt
