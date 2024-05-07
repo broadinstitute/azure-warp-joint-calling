@@ -71,6 +71,7 @@ task SplitIntervalList {
     Int disk_size
     String scatter_mode = "INTERVAL_SUBDIVISION"
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
+    String? dummy_input_to_stop_call_caching
   }
 
   parameter_meta {
