@@ -663,8 +663,6 @@ task GatherVcfs {
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
   }
 
-  Array[String] input_vcfs = read_lines(input_vcf_fofn)
-
   command <<<
     set -euo pipefail
 
