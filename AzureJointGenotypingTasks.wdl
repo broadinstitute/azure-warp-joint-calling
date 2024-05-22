@@ -220,6 +220,7 @@ task GenotypeGVCFs {
     disk: disk_size + " GB"
     docker: gatk_docker
     maxRetries: 1
+    vm_size: "Standard_D8_v3"
   }
 
   output {
