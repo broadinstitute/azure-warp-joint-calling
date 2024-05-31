@@ -220,7 +220,6 @@ task GenotypeGVCFs {
     disk: disk_size + " GB"
     docker: gatk_docker
     maxRetries: 1
-    vm_size: "Standard_D8_v3"
   }
 
   output {
@@ -238,7 +237,7 @@ task GnarlyGenotyper {
     File ref_fasta
     File ref_fasta_index
     File ref_dict
-    String dbsnp_vcf
+    File dbsnp_vcf
     Boolean make_annotation_db = false
 
     String gatk_docker = "mshand/genomesinthecloud:gatk_4_5_0_0"
