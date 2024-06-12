@@ -91,6 +91,7 @@ task SplitIntervalList {
     cpu: 2
     disk: disk_size + " GB"
     docker: gatk_docker
+    maxRetries: 1
   }
 
   output {
@@ -691,6 +692,7 @@ task GatherVcfs {
     disk: disk_size + " GB"
     docker: gatk_docker
     azureSasEnvironmentVariable: "AZURE_STORAGE_SAS_TOKEN"
+    maxRetries: 1
   }
 
   output {
